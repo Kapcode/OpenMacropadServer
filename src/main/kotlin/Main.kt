@@ -103,4 +103,5 @@ fun createAndShowGUI() {
     frame.add(mainSplitPane)
 
     frame.isVisible = true
+    testKNL()// run a simple test to see if this workflow for a library ... works.
 }

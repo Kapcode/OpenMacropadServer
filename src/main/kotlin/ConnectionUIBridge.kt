@@ -1,7 +1,25 @@
+import com.kapcode.Client.Client
+import com.kapcode.Server.Server
+import kotlin.concurrent.thread
+
 //purpose is to bridge the gap between the UI and the connection library I have not created yet.
 //this will also handle communication between usb and bluetooth as well as Wi-Fi. (the network library will, this is the stand in for that)
 //UI will communicate with this interface
+fun testKNL(){
+    val server = Server()
+    val client = Client()
 
+    // Start server in a separate thread (non-blocking)
+    thread {
+        server.init()
+    }
+
+    // Give server time to start listening
+    Thread.sleep(1000)
+
+    // Now connect the client
+    client.init()
+}
 
 interface ConnectionUIBridge {
     fun startListening()
@@ -50,6 +68,8 @@ abstract class Wifi : ConnectionUIBridge {
             handleDisconnection(clientId)
         }
     }
+
+
 
     // Then in your subclasses, you can call the listener methods like:
     // listener?.onClientConnected(clientId)

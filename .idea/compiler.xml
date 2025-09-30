@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="open_macropad_server" target="24" />
+      <module name="open_macropad_server.main" target="24" />
+      <module name="open_macropad_server.test" target="24" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
