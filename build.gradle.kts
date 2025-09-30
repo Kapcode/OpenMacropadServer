@@ -7,14 +7,12 @@ group = "com.kapcode"
 version = "1.0-SNAPSHOT"
 
 repositories {
-    mavenLocal() // For local development
     mavenCentral()
-    maven { url = uri("https://jitpack.io") } // For GitHub releases
 }
 
 dependencies {
-    // Your network library (using mavenLocal for now)
-    implementation("com.kapcode:kotlin-network-library:1.0.0")
+    // Direct JAR dependency to KotlinNetworkLibrary
+    implementation(files("../KotlinNetworkLibrary/build/libs/KotlinNetworkLibrary-1.0.0.jar"))
 
     testImplementation(kotlin("test"))
 }

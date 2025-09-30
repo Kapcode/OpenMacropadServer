@@ -1,4 +1,5 @@
 import com.kapcode.Client.Client
+import com.kapcode.Model.DataModel
 import com.kapcode.Server.Server
 import kotlin.concurrent.thread
 
@@ -74,4 +75,103 @@ abstract class Wifi : ConnectionUIBridge {
     // Then in your subclasses, you can call the listener methods like:
     // listener?.onClientConnected(clientId)
     // listener?.onDataReceived(clientId, data)
+}
+
+/**
+ * WiFi server implementation using the KotlinNetworkLibrary Server
+ */
+class WifiServer(
+    private val port: Int = 9999,
+    private val maxClients: Int = 50
+) : Wifi() {
+    
+    private var server: Server? = null
+    
+    override fun startListening() {
+        if (server?.isRunning() == true) {
+            listener?.onError("Server is already running")
+            return
+        }
+        
+        // Create server with callbacks
+        server = Server(
+            port = port,
+            maxClients = maxClients,
+            onClientConnected = { clientId, secureSocket ->
+                handleNewConnection(clientId)
+            },
+            onClientDisconnected = { clientId ->
+                handleDisconnection(clientId)
+            },
+            onMessageReceived = { clientId, dataModel ->
+                // Extract data from DataModel and notify listener
+                handleReceivedMessage(clientId, dataModel)
+            },
+            onError = { context, exception ->
+                listener?.onError("Server error in $context: ${exception.message}")
+            }
+        )
+        
+        try {
+            server?.start()
+        } catch (e: Exception) {
+            listener?.onError("Failed to start server: ${e.message}")
+        }
+    }
+    
+    override fun stopListening() {
+        server?.stop()
+        connectedClients.clear()
+    }
+    
+    override fun sendData(data: ByteArray) {
+        // Broadcast data to all connected clients
+        val dataModel = createDataMessage(data)
+        server?.broadcast(dataModel)
+    }
+    
+    fun sendDataToClient(clientId: String, data: ByteArray) {
+        val dataModel = createDataMessage(data)
+        server?.sendToClient(clientId, dataModel)
+    }
+    
+    override fun isListening(): Boolean {
+        return server?.isRunning() ?: false
+    }
+    
+    override fun disconnectClient(clientId: String) {
+        server?.disconnectClient(clientId)
+        super.disconnectClient(clientId)
+    }
+    
+    private fun handleReceivedMessage(clientId: String, dataModel: DataModel) {
+        // Handle different message types
+        dataModel.handle(
+            onText = { text ->
+                listener?.onDataReceived(clientId, text.toByteArray())
+            },
+            onCommand = { command, params ->
+                // You can handle commands differently if needed
+                val commandString = "COMMAND:$command:$params"
+                listener?.onDataReceived(clientId, commandString.toByteArray())
+            },
+            onData = { key, value ->
+                listener?.onDataReceived(clientId, value)
+            },
+            onHeartbeat = { timestamp ->
+                // Heartbeat - typically no need to notify UI
+            },
+            onResponse = { success, message, data ->
+                val responseString = "RESPONSE:$success:$message:$data"
+                listener?.onDataReceived(clientId, responseString.toByteArray())
+            }
+        )
+    }
+    
+    private fun createDataMessage(data: ByteArray): DataModel {
+        // Create a DataModel message with the data
+        // Assuming you have a way to create data messages
+        // You may need to import the appropriate factory methods
+        return com.kapcode.Model.dataMessage("data", data)
+    }
 }
