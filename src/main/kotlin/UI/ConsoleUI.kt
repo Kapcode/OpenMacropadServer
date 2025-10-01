@@ -1,9 +1,10 @@
 package UI
 
+import ConnectionUIBridge
 import java.awt.BorderLayout
 import javax.swing.*
 
-class ConsoleUI : JPanel() {
+class ConsoleUI(private val connectionUIBridge: ConnectionUIBridge) : JPanel() {
     private val textArea: JTextArea
     private val inputField: JTextField
     private val sendButton: JButton
@@ -20,6 +21,7 @@ class ConsoleUI : JPanel() {
 
         // Input field
         inputField = JTextField()
+        inputField.addActionListener { sendMessage() } // Allow sending with Enter key
 
         // Send button
         sendButton = JButton("Send")
@@ -40,14 +42,16 @@ class ConsoleUI : JPanel() {
     private fun sendMessage() {
         val message = inputField.text
         if (message.isNotBlank()) {
-            // TODO: Send message via .ConnectionUIBridge
-            appendMessage("Sent: $message")
+            connectionUIBridge.sendData(message.toByteArray(Charsets.UTF_8))
+            appendMessage("Broadcast: $message")
             inputField.text = ""
         }
     }
 
     fun appendMessage(message: String) {
-        textArea.append(message + "\n")
-        textArea.caretPosition = textArea.document.length // Auto-scroll to bottom
+        SwingUtilities.invokeLater {
+            textArea.append(message + "\n")
+            textArea.caretPosition = textArea.document.length // Auto-scroll to bottom
+        }
     }
 }

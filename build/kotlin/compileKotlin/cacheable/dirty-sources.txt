@@ -1,9 +1,0 @@
-C:\Users\prospet0\IdeaProjects\OpenMacropadServer\src\main\kotlin\UI\ConnectedDevicesUI.kt
-C:\Users\prospet0\IdeaProjects\OpenMacropadServer\src\main\kotlin\ConnectionUIBridge.kt
-C:\Users\prospet0\IdeaProjects\OpenMacropadServer\src\main\kotlin\Utility.kt
-C:\Users\prospet0\IdeaProjects\OpenMacropadServer\src\main\kotlin\UI\ServerStatusUI.kt
-C:\Users\prospet0\IdeaProjects\OpenMacropadServer\src\main\kotlin\UI\ConsoleUI.kt
-C:\Users\prospet0\IdeaProjects\OpenMacropadServer\src\main\kotlin\UI\TabbedUI.kt
-C:\Users\prospet0\IdeaProjects\OpenMacropadServer\src\main\kotlin\UI\ConnectedDeviceLabel.kt
-C:\Users\prospet0\IdeaProjects\OpenMacropadServer\src\main\kotlin\UI\SettingsUI.kt
-C:\Users\prospet0\IdeaProjects\OpenMacropadServer\src\main\kotlin\Main.kt

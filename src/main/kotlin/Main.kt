@@ -1,12 +1,12 @@
+import ConnectionListener
 import UI.ConnectedDevicesUI
 import UI.ConsoleUI
 import UI.ServerStatusUI
 import UI.TabbedUI
+import WifiServer
 import java.awt.Dimension
 import javax.swing.*
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 fun main() {
     // Always create Swing UI on the Event Dispatch Thread
     SwingUtilities.invokeLater {
@@ -15,6 +15,8 @@ fun main() {
 }
 
 fun createAndShowGUI() {
+    val wifiServer = WifiServer()
+
     val frame = JFrame("My Application")
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
     frame.setSize(800, 600)
@@ -27,22 +29,8 @@ fun createAndShowGUI() {
     val serverMenu = JMenu("Server")
 
     val startItem = JMenuItem("Start")
-    startItem.addActionListener {
-        // TODO: Start server
-        println("Server starting...")
-    }
-
     val stopItem = JMenuItem("Stop")
-    stopItem.addActionListener {
-        // TODO: Stop server
-        println("Server stopping...")
-    }
-
     val settingsItem = JMenuItem("Settings")
-    settingsItem.addActionListener {
-        val settingsDialog = SettingsUI(frame)
-        settingsDialog.isVisible = true
-    }
 
     serverMenu.add(startItem)
     serverMenu.add(stopItem)
@@ -55,14 +43,8 @@ fun createAndShowGUI() {
     // Create UI components
     val connectedDevicesUI = ConnectedDevicesUI()
     connectedDevicesUI.minimumSize = Dimension(300, 300)
-    connectedDevicesUI.addDevice("Test-Device-001")
-    connectedDevicesUI.addDevice("Test-Device-002")
-    connectedDevicesUI.addDevice("Test-Device-003")
-    connectedDevicesUI.addDevice("Test-Device-004")
-    connectedDevicesUI.addDevice("Test-Device-005")
 
-
-    val consoleUI = ConsoleUI()
+    val consoleUI = ConsoleUI(wifiServer)
     consoleUI.minimumSize = Dimension(300, 300)
 
     // Create the left split pane (vertical) with devices on top and console on bottom
@@ -77,7 +59,7 @@ fun createAndShowGUI() {
     // Create server status UI and tabbed UI for the right side
     val serverStatusUI = ServerStatusUI()
     serverStatusUI.minimumSize = Dimension(400, 100)
-    
+
     val tabbedUI = TabbedUI()
     tabbedUI.minimumSize = Dimension(400, 300)
 
@@ -102,6 +84,51 @@ fun createAndShowGUI() {
     // Add to frame
     frame.add(mainSplitPane)
 
+    // Add listeners
+    startItem.addActionListener {
+        wifiServer.startListening()
+        serverStatusUI.updateStatus(wifiServer.isListening(), 9999)
+    }
+
+    stopItem.addActionListener {
+        wifiServer.stopListening()
+        serverStatusUI.updateStatus(wifiServer.isListening())
+        connectedDevicesUI.clearDevices()
+    }
+
+    settingsItem.addActionListener {
+        val settingsDialog = SettingsUI(frame)
+        settingsDialog.isVisible = true
+    }
+
+    wifiServer.setConnectionListener(object : ConnectionListener {
+        override fun onClientConnected(clientId: String) {
+            val message = "Client connected: $clientId"
+            consoleUI.appendMessage(message)
+            connectedDevicesUI.addDevice(clientId)
+        }
+
+        override fun onClientDisconnected(clientId: String) {
+            val message = "Client disconnected: $clientId"
+            consoleUI.appendMessage(message)
+            connectedDevicesUI.removeDevice(clientId)
+        }
+
+        override fun onDataReceived(clientId: String, data: ByteArray) {
+            val message = "Received from $clientId: ${data.toString(Charsets.UTF_8)}"
+            consoleUI.appendMessage(message)
+        }
+
+        override fun onError(error: String) {
+            val message = "Server error: $error"
+            consoleUI.appendMessage(message)
+            serverStatusUI.updateStatus(false)
+        }
+    })
+
     frame.isVisible = true
-    testKNL()// run a simple test to see if this workflow for a library ... works.
+
+    // Start listening and update status
+    wifiServer.startListening()
+    serverStatusUI.updateStatus(wifiServer.isListening(), 9999)
 }
