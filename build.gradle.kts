@@ -11,8 +11,8 @@ repositories {
 }
 
 dependencies {
-    // Direct JAR dependency to KotlinNetworkLibrary
-    implementation(files("../KotlinNetworkLibrary/build/libs/KotlinNetworkLibrary-1.0.0.jar"))
+    // JAR from project's libs folder
+    implementation(files("libs/KotlinNetworkLibrary-1.0.0.jar"))
 
     testImplementation(kotlin("test"))
 }
@@ -27,9 +27,4 @@ tasks.test {
 
 kotlin {
     jvmToolchain(24)
-}
-sourceSets {
-    main {
-        java.srcDirs("src")
-    }
 }

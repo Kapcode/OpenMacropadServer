@@ -1,26 +1,14 @@
-import com.kapcode.Client.Client
-import com.kapcode.Model.DataModel
-import com.kapcode.Server.Server
+
+import Client.Client
+import Model.DataModel
+import Model.handle
+import Server.Server
 import kotlin.concurrent.thread
 
 //purpose is to bridge the gap between the UI and the connection library I have not created yet.
 //this will also handle communication between usb and bluetooth as well as Wi-Fi. (the network library will, this is the stand in for that)
 //UI will communicate with this interface
-fun testKNL(){
-    val server = Server()
-    val client = Client()
 
-    // Start server in a separate thread (non-blocking)
-    thread {
-        server.init()
-    }
-
-    // Give server time to start listening
-    Thread.sleep(1000)
-
-    // Now connect the client
-    client.init()
-}
 
 interface ConnectionUIBridge {
     fun startListening()
@@ -172,6 +160,6 @@ class WifiServer(
         // Create a DataModel message with the data
         // Assuming you have a way to create data messages
         // You may need to import the appropriate factory methods
-        return com.kapcode.Model.dataMessage("data", data)
+        return Model.dataMessage("data", data)
     }
 }
