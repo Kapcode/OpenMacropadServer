@@ -5,6 +5,7 @@ import UI.ServerStatusUI
 import UI.TabbedUI
 import WifiServer
 import java.awt.Dimension
+import java.awt.Robot
 import javax.swing.*
 
 fun main() {
@@ -132,3 +133,9 @@ fun createAndShowGUI() {
     wifiServer.startListening()
     serverStatusUI.updateStatus(wifiServer.isListening(), 9999)
 }
+fun copy(){
+
+
+
+}
+
