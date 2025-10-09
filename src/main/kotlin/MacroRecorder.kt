@@ -7,109 +7,11 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.awt.Robot
 import java.awt.event.InputEvent
-import java.awt.event.KeyEvent
 
 class MacroRecorder : NativeKeyListener, NativeMouseInputListener {
 
     private val events = mutableListOf<String>()
     private var isRecording = false
-
-    private val awtKeyCodeMap = mapOf(
-        "Backspace" to KeyEvent.VK_BACK_SPACE,
-        "Tab" to KeyEvent.VK_TAB,
-        "Enter" to KeyEvent.VK_ENTER,
-        "Shift" to KeyEvent.VK_SHIFT,
-        "Ctrl" to KeyEvent.VK_CONTROL,
-        "Alt" to KeyEvent.VK_ALT,
-        "Caps Lock" to KeyEvent.VK_CAPS_LOCK,
-        "Escape" to KeyEvent.VK_ESCAPE,
-        "Space" to KeyEvent.VK_SPACE,
-        "Page Up" to KeyEvent.VK_PAGE_UP,
-        "Page Down" to KeyEvent.VK_PAGE_DOWN,
-        "End" to KeyEvent.VK_END,
-        "Home" to KeyEvent.VK_HOME,
-        "Left" to KeyEvent.VK_LEFT,
-        "Up" to KeyEvent.VK_UP,
-        "Right" to KeyEvent.VK_RIGHT,
-        "Down" to KeyEvent.VK_DOWN,
-        "Insert" to KeyEvent.VK_INSERT,
-        "Delete" to KeyEvent.VK_DELETE,
-        "0" to KeyEvent.VK_0,
-        "1" to KeyEvent.VK_1,
-        "2" to KeyEvent.VK_2,
-        "3" to KeyEvent.VK_3,
-        "4" to KeyEvent.VK_4,
-        "5" to KeyEvent.VK_5,
-        "6" to KeyEvent.VK_6,
-        "7" to KeyEvent.VK_7,
-        "8" to KeyEvent.VK_8,
-        "9" to KeyEvent.VK_9,
-        "A" to KeyEvent.VK_A,
-        "B" to KeyEvent.VK_B,
-        "C" to KeyEvent.VK_C,
-        "D" to KeyEvent.VK_D,
-        "E" to KeyEvent.VK_E,
-        "F" to KeyEvent.VK_F,
-        "G" to KeyEvent.VK_G,
-        "H" to KeyEvent.VK_H,
-        "I" to KeyEvent.VK_I,
-        "J" to KeyEvent.VK_J,
-        "K" to KeyEvent.VK_K,
-        "L" to KeyEvent.VK_L,
-        "M" to KeyEvent.VK_M,
-        "N" to KeyEvent.VK_N,
-        "O" to KeyEvent.VK_O,
-        "P" to KeyEvent.VK_P,
-        "Q" to KeyEvent.VK_Q,
-        "R" to KeyEvent.VK_R,
-        "S" to KeyEvent.VK_S,
-        "T" to KeyEvent.VK_T,
-        "U" to KeyEvent.VK_U,
-        "V" to KeyEvent.VK_V,
-        "W" to KeyEvent.VK_W,
-        "X" to KeyEvent.VK_X,
-        "Y" to KeyEvent.VK_Y,
-        "Z" to KeyEvent.VK_Z,
-        "F1" to KeyEvent.VK_F1,
-        "F2" to KeyEvent.VK_F2,
-        "F3" to KeyEvent.VK_F3,
-        "F4" to KeyEvent.VK_F4,
-        "F5" to KeyEvent.VK_F5,
-        "F6" to KeyEvent.VK_F6,
-        "F7" to KeyEvent.VK_F7,
-        "F8" to KeyEvent.VK_F8,
-        "F9" to KeyEvent.VK_F9,
-        "F10" to KeyEvent.VK_F10,
-        "F11" to KeyEvent.VK_F11,
-        "F12" to KeyEvent.VK_F12,
-        "Semicolon" to KeyEvent.VK_SEMICOLON,
-        "Equals" to KeyEvent.VK_EQUALS,
-        "Comma" to KeyEvent.VK_COMMA,
-        "Minus" to KeyEvent.VK_MINUS,
-        "Period" to KeyEvent.VK_PERIOD,
-        "Slash" to KeyEvent.VK_SLASH,
-        "Back Quote" to KeyEvent.VK_BACK_QUOTE,
-        "Open Bracket" to KeyEvent.VK_OPEN_BRACKET,
-        "Back Slash" to KeyEvent.VK_BACK_SLASH,
-        "Close Bracket" to KeyEvent.VK_CLOSE_BRACKET,
-        "Quote" to KeyEvent.VK_QUOTE,
-        "NumPad-0" to KeyEvent.VK_NUMPAD0,
-        "NumPad-1" to KeyEvent.VK_NUMPAD1,
-        "NumPad-2" to KeyEvent.VK_NUMPAD2,
-        "NumPad-3" to KeyEvent.VK_NUMPAD3,
-        "NumPad-4" to KeyEvent.VK_NUMPAD4,
-        "NumPad-5" to KeyEvent.VK_NUMPAD5,
-        "NumPad-6" to KeyEvent.VK_NUMPAD6,
-        "NumPad-7" to KeyEvent.VK_NUMPAD7,
-        "NumPad-8" to KeyEvent.VK_NUMPAD8,
-        "NumPad-9" to KeyEvent.VK_NUMPAD9,
-        "NumPad *" to KeyEvent.VK_MULTIPLY,
-        "NumPad +" to KeyEvent.VK_ADD,
-        "NumPad ," to KeyEvent.VK_SEPARATOR,
-        "NumPad -" to KeyEvent.VK_SUBTRACT,
-        "NumPad ." to KeyEvent.VK_DECIMAL,
-        "NumPad /" to KeyEvent.VK_DIVIDE
-    )
 
     fun startRecording() {
         isRecording = true
@@ -199,11 +101,11 @@ class MacroRecorder : NativeKeyListener, NativeMouseInputListener {
             when (eventObject.get("type") as String) {
                 "key_press" -> {
                     val keyText = eventObject.get("key") as String
-                    awtKeyCodeMap[keyText]?.let { robot.keyPress(it) }
+                    KeyMap.awtKeyCodeMap[keyText]?.let { robot.keyPress(it) }
                 }
                 "key_release" -> {
                     val keyText = eventObject.get("key") as String
-                    awtKeyCodeMap[keyText]?.let { robot.keyRelease(it) }
+                    KeyMap.awtKeyCodeMap[keyText]?.let { robot.keyRelease(it) }
                 }
                 "mouse_press" -> {
                     val x = eventObject.get("x") as Int
@@ -224,6 +126,71 @@ class MacroRecorder : NativeKeyListener, NativeMouseInputListener {
                 }
             }
         }
+    }
+
+    fun convertTextToMacro(macroText: String): String {
+        val eventsArray = JSONArray()
+        val shiftChars = "~!@#$%^&*()_+{}|:\"<>?"
+
+        for (char in macroText) {
+            val isUpperCase = char.isUpperCase()
+            val needsShift = isUpperCase || shiftChars.contains(char)
+
+            val keyText = KeyMap.charToKeyTextMap[char.lowercaseChar()] ?: when (char) {
+                '~' -> "Back Quote"
+                '!' -> "1"
+                '@' -> "2"
+                '#' -> "3"
+                '$' -> "4"
+                '%' -> "5"
+                '^' -> "6"
+                '&' -> "7"
+                '*' -> "8"
+                '(' -> "9"
+                ')' -> "0"
+                '_' -> "Minus"
+                '+' -> "Equals"
+                '{' -> "Open Bracket"
+                '}' -> "Close Bracket"
+                '|' -> "Back Slash"
+                ':' -> "Semicolon"
+                '\"' -> "Quote"
+                '<' -> "Comma"
+                '>' -> "Period"
+                '?' -> "Slash"
+                else -> null
+            }
+
+            if (keyText != null) {
+                if (needsShift) {
+                    val shiftPress = JSONObject()
+                    shiftPress.put("type", "key_press")
+                    shiftPress.put("key", "Shift")
+                    eventsArray.put(shiftPress)
+                }
+
+                val pressEvent = JSONObject()
+                pressEvent.put("type", "key_press")
+                pressEvent.put("key", keyText)
+                eventsArray.put(pressEvent)
+
+                val releaseEvent = JSONObject()
+                releaseEvent.put("type", "key_release")
+                releaseEvent.put("key", keyText)
+                eventsArray.put(releaseEvent)
+
+                if (needsShift) {
+                    val shiftRelease = JSONObject()
+                    shiftRelease.put("type", "key_release")
+                    shiftRelease.put("key", "Shift")
+                    eventsArray.put(shiftRelease)
+                }
+            }
+        }
+
+        val json = JSONObject()
+        json.put("events", eventsArray)
+        return json.toString(4)
     }
 
     override fun nativeKeyPressed(e: NativeKeyEvent) {

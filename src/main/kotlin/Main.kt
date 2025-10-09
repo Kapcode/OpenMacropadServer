@@ -1,11 +1,7 @@
 import ConnectionListener
-import UI.ConnectedDevicesUI
-import UI.ConsoleUI
-import UI.ServerStatusUI
-import UI.TabbedUI
+import UI.*
 import WifiServer
 import java.awt.Dimension
-import java.awt.Robot
 import javax.swing.*
 
 fun main() {
@@ -18,69 +14,61 @@ fun main() {
 fun createAndShowGUI() {
     val wifiServer = WifiServer()
 
-    val frame = JFrame("My Application")
+    val frame = JFrame("Open Macropad Server")
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-    frame.setSize(800, 600)
+    frame.setSize(1280, 800)
     frame.setLocationRelativeTo(null) // center on screen
 
     // Create a menu bar
     val menuBar = JMenuBar()
-
-    // Create Server menu
     val serverMenu = JMenu("Server")
-
     val startItem = JMenuItem("Start")
     val stopItem = JMenuItem("Stop")
     val settingsItem = JMenuItem("Settings")
-
     serverMenu.add(startItem)
     serverMenu.add(stopItem)
     serverMenu.addSeparator()
     serverMenu.add(settingsItem)
-
     menuBar.add(serverMenu)
     frame.jMenuBar = menuBar
 
-    // Create UI components
-    val connectedDevicesUI = ConnectedDevicesUI()
-    connectedDevicesUI.minimumSize = Dimension(300, 300)
-
-    val consoleUI = ConsoleUI(wifiServer)
-    consoleUI.minimumSize = Dimension(300, 300)
-
-    // Create the left split pane (vertical) with devices on top and console on bottom
-    val leftSplitPane = JSplitPane(
-        JSplitPane.VERTICAL_SPLIT,
-        connectedDevicesUI,
-        consoleUI
-    )
-    leftSplitPane.resizeWeight = 0.5 // Equal space for both panels
-    leftSplitPane.dividerLocation = 300
-
-    // Create server status UI and tabbed UI for the right side
+    // --- Create UI components ---
     val serverStatusUI = ServerStatusUI()
-    serverStatusUI.minimumSize = Dimension(400, 100)
-
+    val consoleUI = ConsoleUI(wifiServer)
+    val macroManagerUI = MacroManagerUI()
     val tabbedUI = TabbedUI()
-    tabbedUI.minimumSize = Dimension(400, 300)
 
-    // Create right split pane (vertical) with server status on top and tabbed UI on bottom
-    val rightSplitPane = JSplitPane(
-        JSplitPane.VERTICAL_SPLIT,
-        serverStatusUI,
+    // Set minimum sizes to prevent them from disappearing
+    serverStatusUI.minimumSize = Dimension(0, 50)
+    consoleUI.minimumSize = Dimension(200, 100)
+    macroManagerUI.minimumSize = Dimension(200, 100)
+    tabbedUI.minimumSize = Dimension(400, 100)
+
+    // --- Create the nested layout ---
+
+    // 3. Innermost split: MacroManager (left) and TabbedUI (right)
+    val centerSplit = JSplitPane(
+        JSplitPane.HORIZONTAL_SPLIT,
+        macroManagerUI,
         tabbedUI
     )
-    rightSplitPane.resizeWeight = 0.3 // 30% for server status, 70% for tabbed UI
-    rightSplitPane.dividerLocation = 150
+    centerSplit.resizeWeight = 0.3 // MacroManager gets 30%, TabbedUI gets 70%
 
-    // Create the main split pane (horizontal) with left panels and right panels
-    val mainSplitPane = JSplitPane(
+    // 2. Middle split: Console (left) and the centerSplit (right)
+    val bottomHorizontalSplit = JSplitPane(
         JSplitPane.HORIZONTAL_SPLIT,
-        leftSplitPane,
-        rightSplitPane
+        consoleUI,
+        centerSplit
     )
-    mainSplitPane.resizeWeight = 0.3 // Give more space to the right side
-    mainSplitPane.dividerLocation = 350
+    bottomHorizontalSplit.resizeWeight = 0.2 // Console gets 20%
+
+    // 1. Top-level split: ServerStatus (top) and the rest (bottom)
+    val mainSplitPane = JSplitPane(
+        JSplitPane.VERTICAL_SPLIT,
+        serverStatusUI,
+        bottomHorizontalSplit
+    )
+    mainSplitPane.resizeWeight = 0.1 // ServerStatus gets 10%
 
     // Add to frame
     frame.add(mainSplitPane)
@@ -93,8 +81,10 @@ fun createAndShowGUI() {
 
     stopItem.addActionListener {
         wifiServer.stopListening()
-        serverStatusUI.updateStatus(wifiServer.isListening())
-        connectedDevicesUI.clearDevices()
+        serverStatusUI.updateStatus(
+            wifiServer.isListening(),
+            port = 9999
+        )
     }
 
     settingsItem.addActionListener {
@@ -106,13 +96,11 @@ fun createAndShowGUI() {
         override fun onClientConnected(clientId: String) {
             val message = "Client connected: $clientId"
             consoleUI.appendMessage(message)
-            connectedDevicesUI.addDevice(clientId)
         }
 
         override fun onClientDisconnected(clientId: String) {
             val message = "Client disconnected: $clientId"
             consoleUI.appendMessage(message)
-            connectedDevicesUI.removeDevice(clientId)
         }
 
         override fun onDataReceived(clientId: String, data: ByteArray) {
@@ -123,19 +111,19 @@ fun createAndShowGUI() {
         override fun onError(error: String) {
             val message = "Server error: $error"
             consoleUI.appendMessage(message)
-            serverStatusUI.updateStatus(false)
+            serverStatusUI.updateStatus(
+                false,
+                port = 9999
+            )
         }
     })
-
+    val macroJsonEditorUI = MacroJsonEditorUI()
+    tabbedUI.add("Macro Editor", macroJsonEditorUI)
     frame.isVisible = true
 
     // Start listening and update status
     wifiServer.startListening()
     serverStatusUI.updateStatus(wifiServer.isListening(), 9999)
 }
-fun copy(){
 
-
-
-}
-
+fun copy() {}
