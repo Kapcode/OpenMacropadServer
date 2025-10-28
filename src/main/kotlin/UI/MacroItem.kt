@@ -14,27 +14,27 @@ open class MacroItem : JPanel() {
     private val commandLabel: JLabel
 
     init {
-        val theme : Theme = Theme()
+        val theme = Theme() // Instantiate the theme
+
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
-        background = theme.BackgroundColor // Set background to black
+        background = theme.SecondaryButtonColor // Use theme background color
         border = BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.DARK_GRAY, 1, true),
+            BorderFactory.createLineBorder(theme.SecondaryButtonBorder, 1, true),
             BorderFactory.createEmptyBorder(5, 10, 5, 10) // Internal padding
         )
-
 
         // Main key label (e.g., "Mouse", "C")
         keyLabel = JLabel().apply {
             font = Font("Arial", Font.BOLD, 16)
             alignmentX = Component.CENTER_ALIGNMENT
-            foreground = theme.FontColor // Set text color to light blue
+            foreground = theme.SecondaryButtonFont // Use theme font color
         }
 
         // Command label (e.g., "PRESS", "SNAP_TO (100, 200)")
         commandLabel = JLabel().apply {
             font = Font("Arial", Font.PLAIN, 10)
             alignmentX = Component.CENTER_ALIGNMENT
-            foreground = theme.FontColor // Set text color to light blue
+            foreground = theme.SecondaryButtonFont // Use theme font color
         }
 
         add(keyLabel)

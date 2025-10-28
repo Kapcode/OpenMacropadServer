@@ -56,7 +56,7 @@ class MacroJsonEditorUI : JPanel() {
     }
 
     private fun updateMacroBarFromText() {
-        macroBar.clear()
+        macroBar.clear()//this clear call right here iss the first clear. it will remove
 
         try {
             val json = JSONObject(getText())
