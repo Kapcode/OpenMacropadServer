@@ -19,3 +19,4 @@ The user interface is built using Java Swing and is organized into several key c
 *   **`TabbedUI.kt`**: A container that holds different editor views in tabs.
     *   **`MacroJsonEditorUI.kt`**: The primary tab, which provides a text editor for viewing and editing the JSON structure of a macro. It also contains the `MacroBar`.
     *   **`MacroBar.kt`**: A visual representation of the macro's steps, displayed as a sequence of items (`MacroKeyItem`, `MacroMouseItem`).
+![Screen-Shot-Of-Application](image_url)
