@@ -1,6 +1,7 @@
 import ConnectionListener
 import UI.*
 import WifiServer
+import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Toolkit
 import javax.swing.*
@@ -31,14 +32,20 @@ fun createAndShowGUI() {
     serverMenu.addSeparator()
     serverMenu.add(settingsItem)
     menuBar.add(serverMenu)
+
+    val macroMenu = JMenu("Macro Manager")
+    val macroSettingsItem = JMenuItem("Settings")
+    macroMenu.add(macroSettingsItem)
+    menuBar.add(macroMenu)
+
     frame.jMenuBar = menuBar
 
     // --- Create UI components ---
     val serverStatusUI = ServerStatusUI()
     val consoleUI = ConsoleUI(wifiServer)
     val connectedDevicesUI = ConnectedDevicesUI()
-    val macroManagerUI = MacroManagerUI()
     val tabbedUI = TabbedUI()
+    val macroManagerUI = MacroManagerUI(tabbedUI) // Pass tabbedUI here
 
     // Set minimum sizes to prevent them from disappearing
     serverStatusUI.minimumSize = Dimension(0, 50)
@@ -57,11 +64,54 @@ fun createAndShowGUI() {
     )
     consoleAndDevicesSplit.resizeWeight = 0.5 // 50/50 split
 
+    // Create toolbars
+    val macroManagerToolbar = ToolBarUI()
+    macroManagerToolbar.addButton("Add", "Add Macro") {println("add")}
+    val removeButton = ToolBarButton("Remove", "Remove Macro") {
+        if (macroManagerUI.isSelectionMode) {
+            macroManagerUI.deleteSelectedMacros()
+            // After deletion, selection mode is automatically turned off by deleteSelectedMacros
+            // So, reset button text
+            (it.source as JButton).text = "Remove"
+        } else {
+            macroManagerUI.setSelectionMode(true)
+            (it.source as JButton).text = "Delete Selected"
+        }
+    }
+    macroManagerToolbar.add(removeButton)
+
+    val tabbedUIToolbar = ToolBarUI()
+    tabbedUIToolbar.addButton("Save", "Save") {
+        val selectedComponent = tabbedUI.selectedComponent
+        if (selectedComponent is MacroJsonEditorUI) {
+            val tabTitle = tabbedUI.getTitleForComponent(selectedComponent)
+            selectedComponent.save(tabTitle)
+        }
+    }
+    tabbedUIToolbar.addButton("Save As", "Save As") {
+        val selectedComponent = tabbedUI.selectedComponent
+        if (selectedComponent is MacroJsonEditorUI) {
+            val tabTitle = tabbedUI.getTitleForComponent(selectedComponent)
+            selectedComponent.saveAs(tabTitle)
+        }
+    }
+    tabbedUIToolbar.addButton("Undo", "Undo last typing task") {}
+    tabbedUIToolbar.addButton("Redo", "Redo last typing task") {}
+
+    // Wrap components with toolbars
+    val macroManagerPanel = JPanel(BorderLayout())
+    macroManagerPanel.add(macroManagerToolbar, BorderLayout.NORTH)
+    macroManagerPanel.add(macroManagerUI, BorderLayout.CENTER)
+
+    val tabbedUIPanel = JPanel(BorderLayout())
+    tabbedUIPanel.add(tabbedUIToolbar, BorderLayout.NORTH)
+    tabbedUIPanel.add(tabbedUI, BorderLayout.CENTER)
+
     // 3. Middle split: MacroManager (left) and TabbedUI (right)
     val centerSplit = JSplitPane(
         JSplitPane.HORIZONTAL_SPLIT,
-        macroManagerUI,
-        tabbedUI
+        macroManagerPanel,
+        tabbedUIPanel
     )
     centerSplit.resizeWeight = 0.3 // MacroManager gets 30%, TabbedUI gets 70%
 
@@ -102,6 +152,12 @@ fun createAndShowGUI() {
         val settingsDialog = SettingsUI(frame)
         settingsDialog.isVisible = true
     }
+
+    macroSettingsItem.addActionListener {
+        val settingsDialog = MacroSettingsDialog(frame)
+        settingsDialog.isVisible = true
+    }
+
     wifiServer.setConnectionListener(object : ConnectionListener {
         override fun onClientConnected(clientId: String) {
             val message = "Client connected: $clientId"

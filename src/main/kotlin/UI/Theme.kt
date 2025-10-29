@@ -22,4 +22,9 @@ open class Theme {
     val ThirdButtonColor = Color.decode("#666666") // Dark Gray
     val ThirdButtonBorder = Color.decode("#666666") // Dark Gray
     val ThirdButtonFont = Color.decode("#00BFFF") // Deep Sky Blue
+
+
+    val PrimaryToolBarBackgroundColor = Color.decode("#666666") // Dark Gray
+    val PrimaryToolBarTooltipFontColor = Color.WHITE // WHITE
+    val PrimaryToolBarBorderColor = Color.decode("#66D9EF") // Light Blue/Cyan
 }

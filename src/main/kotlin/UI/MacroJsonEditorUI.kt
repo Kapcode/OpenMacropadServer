@@ -7,9 +7,9 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.awt.BorderLayout
 import java.awt.Point
-import javax.swing.JPanel
-import javax.swing.JSplitPane
-import javax.swing.SwingUtilities
+import java.io.File
+import java.io.IOException
+import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
@@ -17,6 +17,7 @@ class MacroJsonEditorUI : JPanel() {
 
     private val textArea: RSyntaxTextArea
     private val macroBar: MacroBar
+    private var currentFile: File? = null // To keep track of the file being edited
 
     init {
         layout = BorderLayout()
@@ -52,11 +53,11 @@ class MacroJsonEditorUI : JPanel() {
         })
 
         // Load a default macro and trigger the initial update
-        setText(createDefaultMacroJson())
+        setText(createDefaultMacroJson(), null)
     }
 
     private fun updateMacroBarFromText() {
-        macroBar.clear()//this clear call right here iss the first clear. it will remove
+        macroBar.clear()
 
         try {
             val json = JSONObject(getText())
@@ -81,7 +82,6 @@ class MacroJsonEditorUI : JPanel() {
             }
         } catch (e: JSONException) {
             // JSON is likely malformed while the user is typing. This is expected.
-            // The macro bar will simply be empty or partially updated, which is fine.
         }
 
         macroBar.revalidate()
@@ -90,72 +90,82 @@ class MacroJsonEditorUI : JPanel() {
 
     private fun createDefaultMacroJson(): String {
         return """{
-    "events": [
-        {
-            "type": "key",
-            "command": "PRESS",
-            "key": "Ctrl"
-        },
-        {
-            "type": "key",
-            "command": "PRESS",
-            "key": "C"
-        },
-        {
-            "type": "key",
-            "command": "RELEASE",
-            "key": "C"
-        },
-        {
-            "type": "key",
-            "command": "RELEASE",
-            "key": "Ctrl"
-        },
-        {
-            "type": "key",
-            "command": "PRESS",
-            "key": "Ctrl"
-        },
-        {
-            "type": "key",
-            "command": "PRESS",
-            "key": "V"
-        },
-        {
-            "type": "key",
-            "command": "RELEASE",
-            "key": "V"
-        },
-        {
-            "type": "key",
-            "command": "RELEASE",
-            "key": "Ctrl"
-        }
-    ]
+    "events": []
 }"""
     }
 
-    /**
-     * Sets the text content of the JSON editor.
-     */
-    fun setText(text: String) {
-        // Run on the Event Dispatch Thread to avoid concurrency issues with the DocumentListener
+    fun setText(text: String, file: File?) {
         SwingUtilities.invokeLater {
             textArea.text = text
-            textArea.caretPosition = 0 // Reset caret to the beginning
+            textArea.caretPosition = 0
+            this.currentFile = file
         }
     }
 
-    /**
-     * Gets the text content from the JSON editor.
-     */
     fun getText(): String {
         return textArea.text
     }
 
-    /**
-     * Gets a reference to the MacroBar instance.
-     */
+    fun getCurrentFile(): File? {
+        return currentFile
+    }
+
+    fun save(suggestedName: String? = null) {
+        val suggestedNameWithoutExt = suggestedName?.removeSuffix(".json")
+        val fileHasChanged = currentFile != null && suggestedNameWithoutExt != null && currentFile!!.nameWithoutExtension != suggestedNameWithoutExt
+
+        if (currentFile == null || fileHasChanged) {
+            saveAs(suggestedName)
+        } else {
+            saveToFile(currentFile!!)
+        }
+    }
+
+    fun saveAs(suggestedName: String? = null) {
+        val fileChooser = JFileChooser()
+        fileChooser.dialogTitle = "Save Macro As"
+        fileChooser.fileFilter = javax.swing.filechooser.FileNameExtensionFilter("JSON Macro Files", "json")
+
+        val defaultPath = System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros"
+        val defaultDir = File(defaultPath)
+        if (!defaultDir.exists()) defaultDir.mkdirs()
+        fileChooser.currentDirectory = defaultDir
+
+        if (suggestedName != null) {
+            val finalSuggestedName = if (suggestedName.lowercase().endsWith(".json")) {
+                suggestedName
+            } else {
+                suggestedName + ".json"
+            }
+            fileChooser.selectedFile = File(defaultDir, finalSuggestedName)
+        }
+
+        val userSelection = fileChooser.showSaveDialog(this)
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            var fileToSave = fileChooser.selectedFile
+            if (!fileToSave.name.lowercase().endsWith(".json")) {
+                fileToSave = File(fileToSave.absolutePath + ".json")
+            }
+            saveToFile(fileToSave)
+        }
+    }
+
+    private fun saveToFile(file: File) {
+        try {
+            file.writeText(getText())
+            currentFile = file
+            
+            val tabbedPane = SwingUtilities.getAncestorOfClass(JTabbedPane::class.java, this) as? TabbedUI
+            tabbedPane?.setTitleForComponent(this, file.name)
+
+            JOptionPane.showMessageDialog(this, "Macro saved successfully to ${file.name}", "Save Successful", JOptionPane.INFORMATION_MESSAGE)
+        } catch (e: IOException) {
+            JOptionPane.showMessageDialog(this, "Error saving macro: ${e.message}", "Save Error", JOptionPane.ERROR_MESSAGE)
+            e.printStackTrace()
+        }
+    }
+
     fun getMacroBar(): MacroBar {
         return macroBar
     }
