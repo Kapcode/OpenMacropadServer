@@ -19,7 +19,7 @@ import javax.swing.event.DocumentListener
 class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeListener {
 
     private val textArea: RSyntaxTextArea
-    private val macroBar: MacroBar
+    private lateinit var macroBar: MacroBar // Use lateinit
     private var currentFile: File? = null
     private var isUpdatingFromText = false
     private var isUpdatingFromBar = false
@@ -39,13 +39,24 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         }
 
         val sp = RTextScrollPane(textArea)
-        macroBar = MacroBar(frame)
-        macroBar.addPropertyChangeListener(this)
+        add(sp, BorderLayout.CENTER) // Add the text area first
 
-        val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, sp, macroBar)
-        splitPane.resizeWeight = 0.7
-
-        add(splitPane, BorderLayout.CENTER)
+        // Defer MacroBar creation until the component is added to a hierarchy
+        addPropertyChangeListener("ancestor") { e ->
+            if (e.newValue != null && !::macroBar.isInitialized) {
+                val tabbedPane = SwingUtilities.getAncestorOfClass(JTabbedPane::class.java, this) as? TabbedUI
+                if (tabbedPane != null) {
+                    macroBar = MacroBar(frame, tabbedPane)
+                    macroBar.addPropertyChangeListener(this@MacroJsonEditorUI)
+                    val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, sp, macroBar)
+                    splitPane.resizeWeight = 0.7
+                    remove(sp) // Remove the old text area
+                    add(splitPane, BorderLayout.CENTER) // Add the new split pane
+                    revalidate()
+                    repaint()
+                }
+            }
+        }
 
         textArea.document.addDocumentListener(object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent?) { if (!isUpdatingFromBar) updateMacroBarFromText() }
@@ -57,7 +68,7 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
     }
 
     override fun propertyChange(evt: PropertyChangeEvent?) {
-        if (evt?.source == macroBar && evt.propertyName == "component.reordered") {
+        if (::macroBar.isInitialized && evt?.source == macroBar && evt.propertyName == "component.reordered") {
             if (!isUpdatingFromText) {
                 updateTextFromMacroBar()
             }
@@ -81,6 +92,7 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
     }
 
     private fun updateTextFromMacroBar() {
+        if (!::macroBar.isInitialized) return
         isUpdatingFromBar = true
         val events = JSONArray()
         for (component in macroBar.macroItemsPanel.components) {
@@ -108,6 +120,7 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
     }
 
     private fun updateMacroBarFromText() {
+        if (!::macroBar.isInitialized) return
         isUpdatingFromText = true
         macroBar.clear()
 

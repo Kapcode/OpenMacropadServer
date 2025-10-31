@@ -100,7 +100,9 @@ fun createAndShowGUI() {
             val selectedComponent = tabbedUI.selectedComponent
             if (selectedComponent is MacroJsonEditorUI) {
                 val dialog = NewEventDialog(frame)
-                dialog.isVisible = true
+                dialog.isVisible = true // This call blocks until the dialog is closed
+
+                // This code will execute AFTER the dialog is closed
                 dialog.createdEvent?.let { event ->
                     selectedComponent.insertNewEvent(event)
                 }

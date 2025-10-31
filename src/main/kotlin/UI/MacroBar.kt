@@ -7,7 +7,7 @@ import java.awt.datatransfer.UnsupportedFlavorException
 import java.beans.PropertyChangeListener
 import javax.swing.*
 
-class MacroBar(private val frame: JFrame) : JPanel() {
+class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPanel() {
 
     private val toolbar = ToolBarUI()
     val macroItemsPanel = JPanel().apply { layout = BoxLayout(this, BoxLayout.X_AXIS) }
@@ -23,11 +23,12 @@ class MacroBar(private val frame: JFrame) : JPanel() {
         val newEventIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
         if (newEventIcon != null) {
             toolbar.addButton(newEventIcon, "New Event") { 
-                val dialog = NewEventDialog(frame)
-                dialog.isVisible = true
-                dialog.createdEvent?.let { event ->
-                    val selectedComponent = (frame.rootPane.contentPane as JComponent).getComponent(0)
-                    if (selectedComponent is MacroJsonEditorUI) {
+                val selectedComponent = tabbedUI.selectedComponent
+                if (selectedComponent is MacroJsonEditorUI) {
+                    val dialog = NewEventDialog(frame)
+                    dialog.isVisible = true
+
+                    dialog.createdEvent?.let { event ->
                         selectedComponent.insertNewEvent(event)
                     }
                 }
