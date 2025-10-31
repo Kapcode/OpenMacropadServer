@@ -36,4 +36,4 @@ The user interface is built using Java Swing and is organized into several key c
     *   **Macro Manager Toolbar**: "Add" and "Remove" buttons for managing macros.
     *   **Editor Toolbar**: "Save", "Save As", "Undo", and "Redo" buttons for the active editor tab.
 
-![Screen-Shot-Of-Application](image_url)
+![Screen-Shot-Of-Application](macropad_server.png)
