@@ -1,26 +1,20 @@
 package UI
 
 import java.awt.BorderLayout
+import java.awt.Dimension
+import java.awt.FlowLayout
 import java.awt.Font
 import java.io.File
 import java.nio.file.FileSystems
-import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds
 import java.nio.file.WatchKey
 import java.nio.file.WatchService
-import javax.swing.BorderFactory
-import javax.swing.BoxLayout
-import javax.swing.JButton
-import javax.swing.JCheckBox
-import javax.swing.JLabel
-import javax.swing.JOptionPane
-import javax.swing.JPanel
-import javax.swing.SwingUtilities
+import javax.swing.*
 
 class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
 
     private val defaultMacroPath = System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros"
-    private var macroFolder = File(defaultMacroPath) // Initialize with default path
+    private var macroFolder = File(defaultMacroPath)
     private val macrosPanel: JPanel
 
     private var watcher: WatchService? = null
@@ -33,7 +27,6 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
         layout = BorderLayout()
         background = theme.SecondaryBackgroundColor
 
-        // Header
         val headerPanel = JPanel(BorderLayout())
         headerPanel.background = theme.SecondaryBackgroundColor
         val titleLabel = JLabel("Macro Manager")
@@ -42,23 +35,18 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
         headerPanel.add(titleLabel, BorderLayout.WEST)
         add(headerPanel, BorderLayout.NORTH)
 
-        // Panel to hold the list of macros
         macrosPanel = JPanel()
         macrosPanel.layout = BoxLayout(macrosPanel, BoxLayout.Y_AXIS)
         macrosPanel.background = theme.SecondaryBackgroundColor
-        add(macrosPanel, BorderLayout.CENTER)
+        add(JScrollPane(macrosPanel), BorderLayout.CENTER) // Add a scroll pane for when items overflow
 
-        // Ensure the macro directory exists and load macros
         ensureMacroDirectoryExists()
         loadMacros()
-
-        // Start watching the directory
         startWatchingMacroDirectory()
     }
 
     fun setSelectionMode(enabled: Boolean) {
         isSelectionMode = enabled
-        // Reload the macros to show/hide checkboxes
         loadMacros()
     }
 
@@ -81,74 +69,55 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
         if (confirm == JOptionPane.YES_OPTION) {
             selectedItems.forEach { item ->
                 val macroFile = item.getMacroFile()
-                // Close the tab if it's open
                 for (i in 0 until tabbedUI.tabCount) {
                     val component = tabbedUI.getComponentAt(i)
-                    if (component is MacroJsonEditorUI) {
-                        if (component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
-                            tabbedUI.remove(i)
-                            break
-                        }
+                    if (component is MacroJsonEditorUI && component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
+                        tabbedUI.remove(i)
+                        break
                     }
                 }
-                // Delete the file
                 macroFile.delete()
             }
-            // Exit selection mode after deletion
             setSelectionMode(false)
         }
     }
 
     private fun ensureMacroDirectoryExists() {
         if (!macroFolder.exists()) {
-            macroFolder.mkdirs() // Use mkdirs to create parent directories if they don't exist
+            macroFolder.mkdirs()
         }
     }
 
     private fun startWatchingMacroDirectory() {
         try {
             watcher = FileSystems.getDefault().newWatchService()
-            val path = macroFolder.toPath()
-            path.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY)
+            macroFolder.toPath().register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY)
 
             watchThread = Thread { 
                 while (!Thread.currentThread().isInterrupted) {
-                    val key: WatchKey
-                    try {
-                        key = watcher!!.take()
+                    val key: WatchKey = try {
+                        watcher!!.take()
                     } catch (e: InterruptedException) {
                         Thread.currentThread().interrupt()
                         return@Thread
                     }
 
                     for (event in key.pollEvents()) {
-                        val kind = event.kind()
-
-                        // Ignore OVERFLOW event
-                        if (kind === StandardWatchEventKinds.OVERFLOW) {
-                            continue
+                        if (event.kind() !== StandardWatchEventKinds.OVERFLOW) {
+                            SwingUtilities.invokeLater { loadMacros() }
                         }
-
-                        // A change occurred, reload macros on the EDT
-                        SwingUtilities.invokeLater { loadMacros() }
                     }
 
-                    val valid = key.reset()
-                    if (!valid) {
-                        println("WatchKey no longer valid, exiting watcher.")
+                    if (!key.reset()) {
                         break
                     }
                 }
-            }
-            watchThread!!.isDaemon = true // Allow application to exit even if this thread is running
-            watchThread!!.start()
+            }.apply { isDaemon = true; start() }
         } catch (e: Exception) {
-            System.err.println("Error setting up directory watcher: ${e.message}")
             e.printStackTrace()
         }
     }
 
-    // Stop the watcher when the component is removed (e.g., application closes)
     override fun removeNotify() {
         super.removeNotify()
         watchThread?.interrupt()
@@ -158,16 +127,15 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
     private fun loadMacros() {
         macrosPanel.removeAll()
 
-        val macroFiles = macroFolder.listFiles { _, name -> name.endsWith(".json") }
+        val macroFiles = macroFolder.listFiles { _, name -> name.endsWith(".json") } ?: emptyArray()
 
-        if (macroFiles.isNullOrEmpty()) {
+        if (macroFiles.isEmpty()) {
             val emptyLabel = JLabel("No macros found.")
             emptyLabel.foreground = Theme().SecondaryFontColor
             macrosPanel.add(emptyLabel)
         } else {
             macroFiles.forEach { file ->
-                val item = MacroManagerItem(file)
-                macrosPanel.add(item)
+                macrosPanel.add(MacroManagerItem(file))
             }
         }
         macrosPanel.revalidate()
@@ -179,23 +147,34 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
 
         init {
             val theme = Theme()
+            layout = BorderLayout()
             background = theme.SecondaryBackgroundColor
+            border = BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, theme.SecondaryBorderColor),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            )
 
+            // Left side: Checkbox and Name
+            val leftPanel = JPanel(FlowLayout(FlowLayout.LEFT))
+            leftPanel.isOpaque = false
             checkBox.isVisible = isSelectionMode
-            add(checkBox)
-
+            leftPanel.add(checkBox)
             val nameLabel = JLabel(macroFile.nameWithoutExtension)
             nameLabel.foreground = theme.SecondaryFontColor
+            leftPanel.add(nameLabel)
+            add(leftPanel, BorderLayout.WEST)
 
-            val playButton = JButton("Play")
-            playButton.background = theme.SecondaryButtonColor
-            playButton.foreground = theme.SecondaryButtonFont
-            playButton.border = BorderFactory.createLineBorder(theme.SecondaryButtonBorder)
+            // Right side: Buttons
+            val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
+            buttonPanel.isOpaque = false
 
-            val editButton = JButton("Edit")
-            editButton.background = theme.SecondaryButtonColor
-            editButton.foreground = theme.SecondaryButtonFont
-            editButton.border = BorderFactory.createLineBorder(theme.SecondaryButtonBorder)
+            val playIcon = SvgIconRenderer.getIcon("/play-button-outline-green-icon.svg", 16, 16)
+            val playButton = if (playIcon != null) JButton(playIcon) else JButton("Play")
+            styleButton(playButton, theme.SecondaryButtonColor)
+
+            val editIcon = SvgIconRenderer.getIcon("/pencil-icon.svg", 16, 16)
+            val editButton = if (editIcon != null) JButton(editIcon) else JButton("Edit")
+            styleButton(editButton, theme.SecondaryButtonColor)
             editButton.addActionListener { 
                 val newEditor = MacroJsonEditorUI()
                 newEditor.setText(macroFile.readText(), macroFile)
@@ -203,38 +182,39 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
                 tabbedUI.setSelectedComponent(newEditor)
             }
 
-            val deleteButton = JButton("Delete")
-            deleteButton.background = theme.ThirdButtonColor
-            deleteButton.foreground = theme.ThirdButtonFont
-            deleteButton.border = BorderFactory.createLineBorder(theme.ThirdButtonBorder)
+            val deleteIcon = SvgIconRenderer.getIcon("/trash-bin-icon.svg", 16, 16)
+            val deleteButton = if (deleteIcon != null) JButton(deleteIcon) else JButton("Delete")
+            styleButton(deleteButton, theme.ThirdButtonColor)
             deleteButton.addActionListener { 
-                val confirm = JOptionPane.showConfirmDialog(
-                    this, 
-                    "Are you sure you want to delete '${macroFile.name}'?", 
-                    "Confirm Deletion", 
-                    JOptionPane.YES_NO_OPTION
-                )
-
+                val confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete '${macroFile.name}'?", "Confirm Deletion", JOptionPane.YES_NO_OPTION)
                 if (confirm == JOptionPane.YES_OPTION) {
-                    // Close the tab if it's open
                     for (i in 0 until tabbedUI.tabCount) {
                         val component = tabbedUI.getComponentAt(i)
-                        if (component is MacroJsonEditorUI) {
-                            if (component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
-                                tabbedUI.remove(i)
-                                break
-                            }
+                        if (component is MacroJsonEditorUI && component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
+                            tabbedUI.remove(i)
+                            break
                         }
                     }
-                    // Delete the file
                     macroFile.delete()
                 }
             }
 
-            add(nameLabel)
-            add(editButton)
-            add(playButton)
-            add(deleteButton)
+            buttonPanel.add(editButton)
+            buttonPanel.add(playButton)
+            buttonPanel.add(deleteButton)
+            add(buttonPanel, BorderLayout.EAST)
+
+            // Set a fixed height by constraining the maximum size
+            val prefHeight = preferredSize.height
+            maximumSize = Dimension(Short.MAX_VALUE.toInt(), prefHeight)
+        }
+
+        private fun styleButton(button: JButton, bgColor: java.awt.Color) {
+            val theme = Theme()
+            button.background = bgColor
+            button.foreground = theme.SecondaryButtonFont
+            button.border = BorderFactory.createLineBorder(theme.SecondaryButtonBorder)
+            button.isFocusable = false
         }
 
         fun isSelected(): Boolean = checkBox.isSelected

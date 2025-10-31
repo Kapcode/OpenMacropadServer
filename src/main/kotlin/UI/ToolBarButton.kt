@@ -3,24 +3,32 @@ package UI
 import java.awt.BorderLayout
 import java.awt.event.ActionListener
 import javax.swing.BorderFactory
+import javax.swing.Icon
 import javax.swing.JButton
 import javax.swing.JPanel
 
-class ToolBarButton(
-    text: String,
-    toolTipText: String,
-    actionListener: ActionListener
-) : JPanel(BorderLayout()) { // Inherit from JPanel to act as a container
+class ToolBarButton : JPanel { // Removed super() call from here
 
-    private val button: JButton
+    private lateinit var button: JButton // Use lateinit
 
-    init {
+    // Constructor for Icon-based buttons
+    constructor(icon: Icon, toolTipText: String, actionListener: ActionListener) : super(BorderLayout()) { // Call super() here
+        button = JButton(icon)
+        setup(toolTipText, actionListener)
+    }
+
+    // Constructor for Text-based buttons
+    constructor(text: String, toolTipText: String, actionListener: ActionListener) : super(BorderLayout()) { // Call super() here
+        button = JButton(text)
+        setup(toolTipText, actionListener)
+    }
+
+    private fun setup(toolTipText: String, actionListener: ActionListener) {
         // 1. Configure the container panel
         isOpaque = false // Make the container transparent
         border = BorderFactory.createEmptyBorder(2, 5, 2, 5) // This provides the padding
 
-        // 2. Create the actual button that will be nested inside
-        button = JButton(text)
+        // 2. Configure the actual button
         button.toolTipText = toolTipText
         button.addActionListener(actionListener)
 

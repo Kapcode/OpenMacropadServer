@@ -66,37 +66,55 @@ fun createAndShowGUI() {
 
     // Create toolbars
     val macroManagerToolbar = ToolBarUI()
-    macroManagerToolbar.addButton("Add", "Add Macro") {println("add")}
-    val removeButton = ToolBarButton("Remove", "Remove Macro") {
-        if (macroManagerUI.isSelectionMode) {
-            macroManagerUI.deleteSelectedMacros()
-            // After deletion, selection mode is automatically turned off by deleteSelectedMacros
-            // So, reset button text
-            (it.source as JButton).text = "Remove"
-        } else {
-            macroManagerUI.setSelectionMode(true)
-            (it.source as JButton).text = "Delete Selected"
-        }
+    val addIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
+    if (addIcon != null) {
+        macroManagerToolbar.addButton(addIcon, "Add Macro") {println("add")}
     }
-    macroManagerToolbar.add(removeButton)
+
+    val removeIcon = SvgIconRenderer.getIcon("/remove-file-icon.svg", 24, 24)
+    if (removeIcon != null) {
+        val removeButton = ToolBarButton(removeIcon, "Remove Macro") {
+            if (macroManagerUI.isSelectionMode) {
+                macroManagerUI.deleteSelectedMacros()
+            } else {
+                macroManagerUI.setSelectionMode(true)
+            }
+        }
+        macroManagerToolbar.add(removeButton)
+    }
 
     val tabbedUIToolbar = ToolBarUI()
-    tabbedUIToolbar.addButton("Save", "Save") {
-        val selectedComponent = tabbedUI.selectedComponent
-        if (selectedComponent is MacroJsonEditorUI) {
-            val tabTitle = tabbedUI.getTitleForComponent(selectedComponent)
-            selectedComponent.save(tabTitle)
+    val saveIcon = SvgIconRenderer.getIcon("/save-file-icon.svg", 24, 24)
+    if (saveIcon != null) {
+        tabbedUIToolbar.addButton(saveIcon, "Save") {
+            val selectedComponent = tabbedUI.selectedComponent
+            if (selectedComponent is MacroJsonEditorUI) {
+                val tabTitle = tabbedUI.getTitleForComponent(selectedComponent)
+                selectedComponent.save(tabTitle)
+            }
         }
     }
-    tabbedUIToolbar.addButton("Save As", "Save As") {
-        val selectedComponent = tabbedUI.selectedComponent
-        if (selectedComponent is MacroJsonEditorUI) {
-            val tabTitle = tabbedUI.getTitleForComponent(selectedComponent)
-            selectedComponent.saveAs(tabTitle)
+
+    val saveAsIcon = SvgIconRenderer.getIcon("/save-as-icon.svg", 24, 24)
+    if (saveAsIcon != null) {
+        tabbedUIToolbar.addButton(saveAsIcon, "Save As") {
+            val selectedComponent = tabbedUI.selectedComponent
+            if (selectedComponent is MacroJsonEditorUI) {
+                val tabTitle = tabbedUI.getTitleForComponent(selectedComponent)
+                selectedComponent.saveAs(tabTitle)
+            }
         }
     }
-    tabbedUIToolbar.addButton("Undo", "Undo last typing task") {}
-    tabbedUIToolbar.addButton("Redo", "Redo last typing task") {}
+
+    val undoIcon = SvgIconRenderer.getIcon("/undo-circle-outline-icon.svg", 24, 24)
+    if (undoIcon != null) {
+        tabbedUIToolbar.addButton(undoIcon, "Undo") {}
+    }
+
+    val redoIcon = SvgIconRenderer.getIcon("/redo-circle-outline-icon.svg", 24, 24)
+    if (redoIcon != null) {
+        tabbedUIToolbar.addButton(redoIcon, "Redo") {}
+    }
 
     // Wrap components with toolbars
     val macroManagerPanel = JPanel(BorderLayout())

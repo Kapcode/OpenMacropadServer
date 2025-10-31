@@ -15,9 +15,21 @@ class MacroBar : JPanel() {
         background = theme.SecondaryBackgroundColor // Use theme background color
         macroItemsPanel.background = theme.SecondaryBackgroundColor
 
-        toolbar.addButton("Record (START)", "Start/Stop Recording") {}
-        toolbar.addButton("Undo", "Undo last action") {}
-        toolbar.addButton("Redo", "Redo last action") {}
+        val recordIcon = SvgIconRenderer.getIcon("/play-button-outline-green-icon.svg", 24, 24)
+        if (recordIcon != null) {
+            toolbar.addButton(recordIcon, "Start/Stop Recording") {}
+        }
+
+        val undoIcon = SvgIconRenderer.getIcon("/undo-circle-outline-icon.svg", 24, 24)
+        if (undoIcon != null) {
+            toolbar.addButton(undoIcon, "Undo last action") {}
+        }
+
+        val redoIcon = SvgIconRenderer.getIcon("/redo-circle-outline-icon.svg", 24, 24)
+        if (redoIcon != null) {
+            toolbar.addButton(redoIcon, "Redo last action") {}
+        }
+
         add(toolbar, BorderLayout.NORTH)
         add(macroItemsPanel, BorderLayout.CENTER)
 
