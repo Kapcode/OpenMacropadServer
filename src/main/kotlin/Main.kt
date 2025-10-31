@@ -1,27 +1,25 @@
 import ConnectionListener
 import UI.*
 import WifiServer
+import java.awt.AWTEvent
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Toolkit
+import java.awt.event.AWTEventListener
+import java.awt.event.MouseEvent
 import javax.swing.*
 
 fun main() {
-    // Always create Swing UI on the Event Dispatch Thread
-    SwingUtilities.invokeLater {
-        createAndShowGUI()
-    }
+    SwingUtilities.invokeLater { createAndShowGUI() }
 }
 
 fun createAndShowGUI() {
     val wifiServer = WifiServer()
-    generateSineWaveBeep(200.0, 2000)
     val frame = JFrame("Open Macropad Server")
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
     frame.setSize(1280, 800)
-    frame.setLocationRelativeTo(null) // center on screen
+    frame.setLocationRelativeTo(null)
 
-    // Create a menu bar
     val menuBar = JMenuBar()
     val serverMenu = JMenu("Server")
     val startItem = JMenuItem("Start")
@@ -40,48 +38,47 @@ fun createAndShowGUI() {
 
     frame.jMenuBar = menuBar
 
-    // --- Create UI components ---
     val serverStatusUI = ServerStatusUI()
     val consoleUI = ConsoleUI(wifiServer)
     val connectedDevicesUI = ConnectedDevicesUI()
     val tabbedUI = TabbedUI()
-    val macroManagerUI = MacroManagerUI(tabbedUI) // Pass tabbedUI here
+    val macroManagerUI = MacroManagerUI(tabbedUI)
 
-    // Set minimum sizes to prevent them from disappearing
+    val macroManagerToolbar = ToolBarUI()
+    val addIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
+    if (addIcon != null) {
+        macroManagerToolbar.addButton(addIcon, "Add Macro") { println("add") }
+    }
+
+    val removeIcon = SvgIconRenderer.getIcon("/remove-file-icon.svg", 24, 24)
+    val deleteIcon = SvgIconRenderer.getIcon("/trash-bin-icon.svg", 24, 24)
+    val removeButton = if (removeIcon != null) {
+        ToolBarButton(removeIcon, "Remove Macro") {}
+    } else {
+        ToolBarButton("Remove", "Remove Macro") {}
+    }
+    macroManagerToolbar.add(removeButton)
+
+    removeButton.addActionListener { 
+        if (macroManagerUI.isSelectionMode) {
+            macroManagerUI.deleteSelectedMacros()
+            if (removeIcon != null) removeButton.setIcon(removeIcon)
+            removeButton.setToolTipText("Remove Macro")
+        } else {
+            macroManagerUI.setSelectionMode(true)
+            if (deleteIcon != null) removeButton.setIcon(deleteIcon)
+            removeButton.setToolTipText("Delete Selected")
+        }
+    }
+
     serverStatusUI.minimumSize = Dimension(0, 50)
     consoleUI.minimumSize = Dimension(200, 100)
     connectedDevicesUI.minimumSize = Dimension(200, 100)
     macroManagerUI.minimumSize = Dimension(200, 100)
     tabbedUI.minimumSize = Dimension(400, 100)
 
-    // --- Create the nested layout ---
-
-    // 4. Innermost split: Console (left) and ConnectedDevices (right)
-    val consoleAndDevicesSplit = JSplitPane(
-        JSplitPane.HORIZONTAL_SPLIT,
-        consoleUI,
-        connectedDevicesUI
-    )
-    consoleAndDevicesSplit.resizeWeight = 0.5 // 50/50 split
-
-    // Create toolbars
-    val macroManagerToolbar = ToolBarUI()
-    val addIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
-    if (addIcon != null) {
-        macroManagerToolbar.addButton(addIcon, "Add Macro") {println("add")}
-    }
-
-    val removeIcon = SvgIconRenderer.getIcon("/remove-file-icon.svg", 24, 24)
-    if (removeIcon != null) {
-        val removeButton = ToolBarButton(removeIcon, "Remove Macro") {
-            if (macroManagerUI.isSelectionMode) {
-                macroManagerUI.deleteSelectedMacros()
-            } else {
-                macroManagerUI.setSelectionMode(true)
-            }
-        }
-        macroManagerToolbar.add(removeButton)
-    }
+    val consoleAndDevicesSplit = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, consoleUI, connectedDevicesUI)
+    consoleAndDevicesSplit.resizeWeight = 0.5
 
     val tabbedUIToolbar = ToolBarUI()
     val saveIcon = SvgIconRenderer.getIcon("/save-file-icon.svg", 24, 24)
@@ -89,8 +86,7 @@ fun createAndShowGUI() {
         tabbedUIToolbar.addButton(saveIcon, "Save") {
             val selectedComponent = tabbedUI.selectedComponent
             if (selectedComponent is MacroJsonEditorUI) {
-                val tabTitle = tabbedUI.getTitleForComponent(selectedComponent)
-                selectedComponent.save(tabTitle)
+                selectedComponent.save(tabbedUI.getTitleForComponent(selectedComponent))
             }
         }
     }
@@ -100,8 +96,7 @@ fun createAndShowGUI() {
         tabbedUIToolbar.addButton(saveAsIcon, "Save As") {
             val selectedComponent = tabbedUI.selectedComponent
             if (selectedComponent is MacroJsonEditorUI) {
-                val tabTitle = tabbedUI.getTitleForComponent(selectedComponent)
-                selectedComponent.saveAs(tabTitle)
+                selectedComponent.saveAs(tabbedUI.getTitleForComponent(selectedComponent))
             }
         }
     }
@@ -116,7 +111,6 @@ fun createAndShowGUI() {
         tabbedUIToolbar.addButton(redoIcon, "Redo") {}
     }
 
-    // Wrap components with toolbars
     val macroManagerPanel = JPanel(BorderLayout())
     macroManagerPanel.add(macroManagerToolbar, BorderLayout.NORTH)
     macroManagerPanel.add(macroManagerUI, BorderLayout.CENTER)
@@ -125,104 +119,65 @@ fun createAndShowGUI() {
     tabbedUIPanel.add(tabbedUIToolbar, BorderLayout.NORTH)
     tabbedUIPanel.add(tabbedUI, BorderLayout.CENTER)
 
-    // 3. Middle split: MacroManager (left) and TabbedUI (right)
-    val centerSplit = JSplitPane(
-        JSplitPane.HORIZONTAL_SPLIT,
-        macroManagerPanel,
-        tabbedUIPanel
-    )
-    centerSplit.resizeWeight = 0.3 // MacroManager gets 30%, TabbedUI gets 70%
+    val centerSplit = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, macroManagerPanel, tabbedUIPanel)
+    centerSplit.resizeWeight = 0.3
 
-    // 2. Middle split: The console/devices combo (left) and the centerSplit (right)
-    val bottomHorizontalSplit = JSplitPane(
-        JSplitPane.HORIZONTAL_SPLIT,
-        consoleAndDevicesSplit,
-        centerSplit
-    )
-    bottomHorizontalSplit.resizeWeight = 0.3 // Console/devices get 30%
+    val bottomHorizontalSplit = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, consoleAndDevicesSplit, centerSplit)
+    bottomHorizontalSplit.resizeWeight = 0.3
 
-    // 1. Top-level split: ServerStatus (top) and the rest (bottom)
-    val mainSplitPane = JSplitPane(
-        JSplitPane.VERTICAL_SPLIT,
-        serverStatusUI,
-        bottomHorizontalSplit
-    )
-    mainSplitPane.resizeWeight = 0.1 // ServerStatus gets 10%
+    val mainSplitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, serverStatusUI, bottomHorizontalSplit)
+    mainSplitPane.resizeWeight = 0.1
 
-    // Add to frame
     frame.add(mainSplitPane)
 
-    // Add listeners
-    startItem.addActionListener {
-        wifiServer.startListening()
-        serverStatusUI.updateStatus(wifiServer.isListening(), 9999)
-    }
+    // Global listener to cancel selection mode
+    Toolkit.getDefaultToolkit().addAWTEventListener(AWTEventListener { event ->
+        if (event is MouseEvent && event.id == MouseEvent.MOUSE_PRESSED) {
+            if (macroManagerUI.isSelectionMode) {
+                val source = event.source as? JComponent ?: return@AWTEventListener
+                
+                // Check if the click was on the remove button or inside the macro manager list
+                val isClickOnRemoveButton = SwingUtilities.isDescendingFrom(source, removeButton)
+                val isClickInMacroManager = SwingUtilities.isDescendingFrom(source, macroManagerUI)
 
-    stopItem.addActionListener {
-        wifiServer.stopListening()
-        serverStatusUI.updateStatus(
-            wifiServer.isListening(),
-            port = 9999
-        )
-    }
+                if (!isClickOnRemoveButton && !isClickInMacroManager) {
+                    macroManagerUI.cancelSelectionMode()
+                    if (removeIcon != null) removeButton.setIcon(removeIcon)
+                    removeButton.setToolTipText("Remove Macro")
+                }
+            }
+        }
+    }, AWTEvent.MOUSE_EVENT_MASK)
 
-    settingsItem.addActionListener {
-        val settingsDialog = SettingsUI(frame)
-        settingsDialog.isVisible = true
-    }
-
-    macroSettingsItem.addActionListener {
-        val settingsDialog = MacroSettingsDialog(frame)
-        settingsDialog.isVisible = true
-    }
+    startItem.addActionListener { wifiServer.startListening(); serverStatusUI.updateStatus(wifiServer.isListening(), 9999) }
+    stopItem.addActionListener { wifiServer.stopListening(); serverStatusUI.updateStatus(wifiServer.isListening(), 9999) }
+    settingsItem.addActionListener { SettingsUI(frame).isVisible = true }
+    macroSettingsItem.addActionListener { MacroSettingsDialog(frame).isVisible = true }
 
     wifiServer.setConnectionListener(object : ConnectionListener {
         override fun onClientConnected(clientId: String) {
-            val message = "Client connected: $clientId"
-            consoleUI.appendMessage(message)
+            consoleUI.appendMessage("Client connected: $clientId")
             connectedDevicesUI.addDevice(clientId)
-            generateSineWaveBeep(30000.0, 1000)
         }
 
         override fun onClientDisconnected(clientId: String) {
-            val message = "Client disconnected: $clientId"
-            consoleUI.appendMessage(message)
+            consoleUI.appendMessage("Client disconnected: $clientId")
             connectedDevicesUI.removeDevice(clientId)
         }
 
         override fun onDataReceived(clientId: String, data: ByteArray) {
-            val message = "Received from $clientId: ${data.toString(Charsets.UTF_8)}"
-            consoleUI.appendMessage(message)
+            consoleUI.appendMessage("Received from $clientId: ${data.toString(Charsets.UTF_8)}")
         }
 
         override fun onError(error: String) {
-            val message = "Server error: $error"
-            consoleUI.appendMessage(message)
-            serverStatusUI.updateStatus(
-                false,
-                port = 9999
-            )
+            consoleUI.appendMessage("Server error: $error")
+            serverStatusUI.updateStatus(false, 9999)
         }
     })
-    val macroJsonEditorUI = MacroJsonEditorUI()
-    tabbedUI.add("Macro Editor", macroJsonEditorUI)
+
+    tabbedUI.add("Macro Editor", MacroJsonEditorUI())
     frame.isVisible = true
 
-    // Start listening and update status
     wifiServer.startListening()
     serverStatusUI.updateStatus(wifiServer.isListening(), 9999)
 }
-
-fun copy() {}
-
-fun generateSineWaveBeep(frequency: Double, duration: Int) {
-    val timer = Timer(duration) {
-        // Calculate the frequency of the beep based on the provided frequency
-        val beepFrequency = frequency * 1000.0 // Convert frequency to Hz
-        Toolkit.getDefaultToolkit().beep(beepFrequency.toInt())
-    }
-    timer.isRepeats = false
-    timer.start()
-}
-
-private fun Toolkit.beep(toInt: Int) {}

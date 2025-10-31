@@ -2,8 +2,9 @@ package UI
 
 import java.awt.Component
 import java.awt.FlowLayout
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import javax.swing.JButton
-import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTabbedPane
 
@@ -13,7 +14,6 @@ class TabbedUI : JTabbedPane() {
         super.add(title, component)
         val index = indexOfComponent(component)
 
-        // Create a panel to hold the editable label and a close button
         val tabHeader = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0))
         tabHeader.isOpaque = false
 
@@ -27,6 +27,27 @@ class TabbedUI : JTabbedPane() {
 
         tabHeader.add(editableLabel)
         tabHeader.add(closeButton)
+
+        // Listener with custom double-click timing
+        tabHeader.addMouseListener(object : MouseAdapter() {
+            var lastClickTime: Long = 0
+            val DOUBLE_CLICK_THRESHOLD = 300 // Milliseconds
+
+            override fun mouseClicked(e: MouseEvent) {
+                val tabIndex = indexOfTabComponent(tabHeader)
+                if (tabIndex == -1) return
+
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastClickTime <= DOUBLE_CLICK_THRESHOLD) {
+                    // Double-click detected
+                    editableLabel.startEditing()
+                } else {
+                    // Single-click
+                    selectedIndex = tabIndex
+                }
+                lastClickTime = currentTime
+            }
+        })
 
         setTabComponentAt(index, tabHeader)
 

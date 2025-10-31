@@ -3,8 +3,6 @@ package UI
 import java.awt.CardLayout
 import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextField
@@ -21,38 +19,20 @@ class EditableTabComponent(private val tabbedPane: JTabbedPane, initialTitle: St
 
     init {
         layout = cardLayout
-        isOpaque = false // Make the panel transparent
+        isOpaque = false
 
-        // Create the label for displaying the title
         label = JLabel(initialTitle)
-        label.border = javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 5) // Some padding
+        label.border = javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 5)
 
-        // Create the text field for editing the title
         textField = JTextField(initialTitle)
 
-        // Add components to the panel
         add(label, labelCard)
         add(textField, textFieldCard)
 
-        // Show the label by default
         cardLayout.show(this, labelCard)
 
-        // Add a mouse listener to the label to start editing on double-click
-        label.addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(e: MouseEvent) {
-                if (e.clickCount == 2) {
-                    textField.text = label.text
-                    cardLayout.show(this@EditableTabComponent, textFieldCard)
-                    textField.requestFocusInWindow()
-                    textField.selectAll()
-                }
-            }
-        })
-
-        // Add an action listener to the text field to stop editing when Enter is pressed
+        // Action listeners for when editing is finished
         textField.addActionListener { stopEditing() }
-
-        // Add a focus listener to the text field to stop editing when it loses focus
         textField.addFocusListener(object : FocusAdapter() {
             override fun focusLost(e: FocusEvent?) {
                 stopEditing()
@@ -60,11 +40,17 @@ class EditableTabComponent(private val tabbedPane: JTabbedPane, initialTitle: St
         })
     }
 
+    fun startEditing() {
+        textField.text = label.text
+        cardLayout.show(this@EditableTabComponent, textFieldCard)
+        textField.requestFocusInWindow()
+        textField.selectAll()
+    }
+
     private fun stopEditing() {
         val newTitle = textField.text
         label.text = newTitle
 
-        // Find the index of this component's parent in the tabbed pane
         val parentPanel = this.parent as? JPanel
         if (parentPanel != null) {
             val index = tabbedPane.indexOfTabComponent(parentPanel)
@@ -72,14 +58,9 @@ class EditableTabComponent(private val tabbedPane: JTabbedPane, initialTitle: St
                 tabbedPane.setTitleAt(index, newTitle)
             }
         }
-
-        // Switch back to the label view
         cardLayout.show(this, labelCard)
     }
 
-    /**
-     * Programmatically updates the title of the tab.
-     */
     fun updateTitle(newTitle: String) {
         label.text = newTitle
         textField.text = newTitle
