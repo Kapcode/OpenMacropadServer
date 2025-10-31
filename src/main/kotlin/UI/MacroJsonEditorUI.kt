@@ -26,6 +26,17 @@ class MacroJsonEditorUI : JPanel() {
         textArea = RSyntaxTextArea(20, 60)
         textArea.syntaxEditingStyle = SyntaxConstants.SYNTAX_STYLE_JSON
         textArea.isCodeFoldingEnabled = true
+
+        // Apply the dark theme
+        try {
+            val theme = org.fife.ui.rsyntaxtextarea.Theme.load(
+                javaClass.getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/dark.xml")
+            )
+            theme.apply(textArea)
+        } catch (e: IOException) {
+            e.printStackTrace() // Theme file not found
+        }
+
         val sp = RTextScrollPane(textArea)
 
         // 2. Create the MacroBar

@@ -1,6 +1,7 @@
 import ConnectionListener
 import UI.*
 import WifiServer
+import com.formdev.flatlaf.FlatDarkLaf
 import java.awt.AWTEvent
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -10,7 +11,16 @@ import java.awt.event.MouseEvent
 import javax.swing.*
 
 fun main() {
-    SwingUtilities.invokeLater { createAndShowGUI() }
+    // Set the Look and Feel on the Event Dispatch Thread, before creating any components
+    SwingUtilities.invokeLater {
+        try {
+            UIManager.setLookAndFeel(FlatDarkLaf())
+        } catch (ex: Exception) {
+            System.err.println("Failed to initialize LaF")
+        }
+
+        createAndShowGUI()
+    }
 }
 
 fun createAndShowGUI() {
@@ -130,13 +140,11 @@ fun createAndShowGUI() {
 
     frame.add(mainSplitPane)
 
-    // Global listener to cancel selection mode
     Toolkit.getDefaultToolkit().addAWTEventListener(AWTEventListener { event ->
         if (event is MouseEvent && event.id == MouseEvent.MOUSE_PRESSED) {
             if (macroManagerUI.isSelectionMode) {
                 val source = event.source as? JComponent ?: return@AWTEventListener
                 
-                // Check if the click was on the remove button or inside the macro manager list
                 val isClickOnRemoveButton = SwingUtilities.isDescendingFrom(source, removeButton)
                 val isClickInMacroManager = SwingUtilities.isDescendingFrom(source, macroManagerUI)
 
