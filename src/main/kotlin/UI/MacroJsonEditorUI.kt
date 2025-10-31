@@ -39,8 +39,8 @@ class MacroJsonEditorUI : JPanel(), PropertyChangeListener {
         }
 
         val sp = RTextScrollPane(textArea)
-        macroBar = MacroBar()
-        macroBar.addPropertyChangeListener(this) // Corrected: Use addPropertyChangeListener
+        macroBar = MacroBar(SwingUtilities.getWindowAncestor(this) as? JFrame)
+        macroBar.addPropertyChangeListener(this)
 
         val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, sp, macroBar)
         splitPane.resizeWeight = 0.7
@@ -57,11 +57,26 @@ class MacroJsonEditorUI : JPanel(), PropertyChangeListener {
     }
 
     override fun propertyChange(evt: PropertyChangeEvent?) {
-        // Listen for the specific property change from MacroBar indicating reorder
         if (evt?.source == macroBar && evt.propertyName == "component.reordered") {
             if (!isUpdatingFromText) {
                 updateTextFromMacroBar()
             }
+        }
+    }
+
+    fun insertNewEvent(newEvent: JSONObject) {
+        try {
+            val currentJson = JSONObject(getText())
+            val events = currentJson.getJSONArray("events")
+            
+            events.put(newEvent)
+            
+            setText(currentJson.toString(4), currentFile)
+            
+            textArea.caretPosition = textArea.document.length
+        } catch (e: JSONException) {
+            val newJson = JSONObject().put("events", JSONArray().put(newEvent))
+            setText(newJson.toString(4), currentFile)
         }
     }
 
@@ -131,7 +146,6 @@ class MacroJsonEditorUI : JPanel(), PropertyChangeListener {
     }
 
     fun setText(text: String, file: File?) {
-        // This MUST be synchronous to allow the isUpdatingFromBar flag to work correctly.
         textArea.text = text
         textArea.caretPosition = 0
         this.currentFile = file

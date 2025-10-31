@@ -11,7 +11,6 @@ import java.awt.event.MouseEvent
 import javax.swing.*
 
 fun main() {
-    // Set the Look and Feel on the Event Dispatch Thread, before creating any components
     SwingUtilities.invokeLater {
         try {
             UIManager.setLookAndFeel(FlatDarkLaf())
@@ -27,14 +26,17 @@ fun createAndShowGUI() {
     val wifiServer = WifiServer()
     val frame = JFrame("Open Macropad Server")
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-    frame.setSize(1280, 800)
+    frame.extendedState = JFrame.MAXIMIZED_BOTH // Maximize the window
     frame.setLocationRelativeTo(null)
 
     val menuBar = JMenuBar()
     val serverMenu = JMenu("Server")
     val startItem = JMenuItem("Start")
+    startItem.toolTipText = "Start the server"
     val stopItem = JMenuItem("Stop")
+    stopItem.toolTipText = "Stop the server"
     val settingsItem = JMenuItem("Settings")
+    settingsItem.toolTipText = "Open server settings"
     serverMenu.add(startItem)
     serverMenu.add(stopItem)
     serverMenu.addSeparator()
@@ -43,6 +45,7 @@ fun createAndShowGUI() {
 
     val macroMenu = JMenu("Macro Manager")
     val macroSettingsItem = JMenuItem("Settings")
+    macroSettingsItem.toolTipText = "Open macro manager settings"
     macroMenu.add(macroSettingsItem)
     menuBar.add(macroMenu)
 
@@ -91,6 +94,19 @@ fun createAndShowGUI() {
     consoleAndDevicesSplit.resizeWeight = 0.5
 
     val tabbedUIToolbar = ToolBarUI()
+    val newEventIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
+    if (newEventIcon != null) {
+        tabbedUIToolbar.addButton(newEventIcon, "New Event") { 
+            val selectedComponent = tabbedUI.selectedComponent
+            if (selectedComponent is MacroJsonEditorUI) {
+                val dialog = NewEventDialog(frame)
+                dialog.isVisible = true
+                dialog.createdEvent?.let { event ->
+                    selectedComponent.insertNewEvent(event)
+                }
+            }
+        }
+    }
     val saveIcon = SvgIconRenderer.getIcon("/save-file-icon.svg", 24, 24)
     if (saveIcon != null) {
         tabbedUIToolbar.addButton(saveIcon, "Save") {

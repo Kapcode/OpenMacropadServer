@@ -176,10 +176,12 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
 
             val playIcon = SvgIconRenderer.getIcon("/play-button-outline-green-icon.svg", 16, 16)
             val playButton = if (playIcon != null) JButton(playIcon) else JButton("Play")
+            playButton.toolTipText = "Play Macro"
             styleButton(playButton, theme.ThirdButtonColor)
 
             val editIcon = SvgIconRenderer.getIcon("/pencil-icon.svg", 16, 16)
             val editButton = if (editIcon != null) JButton(editIcon) else JButton("Edit")
+            editButton.toolTipText = "Edit Macro"
             styleButton(editButton, theme.ThirdButtonColor)
             editButton.addActionListener { 
                 val newEditor = MacroJsonEditorUI()
@@ -190,6 +192,7 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
 
             val deleteIcon = SvgIconRenderer.getIcon("/trash-bin-icon.svg", 16, 16)
             val deleteButton = if (deleteIcon != null) JButton(deleteIcon) else JButton("Delete")
+            deleteButton.toolTipText = "Delete Macro"
             styleButton(deleteButton, theme.ThirdButtonColor)
             deleteButton.addActionListener { 
                 val confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete '${macroFile.name}'?", "Confirm Deletion", JOptionPane.YES_NO_OPTION)
