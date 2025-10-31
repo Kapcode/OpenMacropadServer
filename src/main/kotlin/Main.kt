@@ -199,7 +199,7 @@ fun createAndShowGUI() {
         }
     })
 
-    tabbedUI.add("Macro Editor", MacroJsonEditorUI())
+    tabbedUI.add("Macro Editor", MacroJsonEditorUI(frame))
     frame.isVisible = true
 
     wifiServer.startListening()

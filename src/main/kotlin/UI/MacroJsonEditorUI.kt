@@ -16,7 +16,7 @@ import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-class MacroJsonEditorUI : JPanel(), PropertyChangeListener {
+class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeListener {
 
     private val textArea: RSyntaxTextArea
     private val macroBar: MacroBar
@@ -39,7 +39,7 @@ class MacroJsonEditorUI : JPanel(), PropertyChangeListener {
         }
 
         val sp = RTextScrollPane(textArea)
-        macroBar = MacroBar(SwingUtilities.getWindowAncestor(this) as? JFrame)
+        macroBar = MacroBar(frame)
         macroBar.addPropertyChangeListener(this)
 
         val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, sp, macroBar)

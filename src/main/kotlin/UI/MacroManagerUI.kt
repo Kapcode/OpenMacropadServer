@@ -160,7 +160,6 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)
             )
 
-            // Left side: Checkbox and Name
             val leftPanel = JPanel(FlowLayout(FlowLayout.LEFT))
             leftPanel.isOpaque = false
             checkBox.isVisible = isSelectionMode
@@ -170,7 +169,6 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
             leftPanel.add(nameLabel)
             add(leftPanel, BorderLayout.WEST)
 
-            // Right side: Buttons
             val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
             buttonPanel.isOpaque = false
 
@@ -184,7 +182,8 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
             editButton.toolTipText = "Edit Macro"
             styleButton(editButton, theme.ThirdButtonColor)
             editButton.addActionListener { 
-                val newEditor = MacroJsonEditorUI()
+                val frame = SwingUtilities.getWindowAncestor(this@MacroManagerUI) as? JFrame ?: return@addActionListener
+                val newEditor = MacroJsonEditorUI(frame)
                 newEditor.setText(macroFile.readText(), macroFile)
                 tabbedUI.add(macroFile.name, newEditor)
                 tabbedUI.setSelectedComponent(newEditor)
@@ -213,7 +212,6 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
             buttonPanel.add(deleteButton)
             add(buttonPanel, BorderLayout.EAST)
 
-            // Set a fixed height by constraining the maximum size
             val prefHeight = preferredSize.height
             maximumSize = Dimension(Short.MAX_VALUE.toInt(), prefHeight)
         }
