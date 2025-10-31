@@ -13,9 +13,14 @@ open class MacroItem : JPanel() {
     private val keyLabel: JLabel
     private val commandLabel: JLabel
 
+    companion object {
+        const val ITEM_HEIGHT = 40 // Define a standard height for all macro items
+    }
+
     init {
         val theme = Theme() // Instantiate the theme
 
+        // Use BoxLayout.Y_AXIS for vertical arrangement of labels
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
         background = theme.SecondaryButtonColor // Use theme background color
         border = BorderFactory.createCompoundBorder(
@@ -26,28 +31,31 @@ open class MacroItem : JPanel() {
         // Main key label (e.g., "Mouse", "C")
         keyLabel = JLabel().apply {
             font = Font("Arial", Font.BOLD, 16)
-            alignmentX = Component.CENTER_ALIGNMENT
+            alignmentX = Component.LEFT_ALIGNMENT // Align text to the left
             foreground = theme.SecondaryButtonFont // Use theme font color
         }
 
         // Command label (e.g., "PRESS", "SNAP_TO (100, 200)")
         commandLabel = JLabel().apply {
             font = Font("Arial", Font.PLAIN, 10)
-            alignmentX = Component.CENTER_ALIGNMENT
+            alignmentX = Component.LEFT_ALIGNMENT // Align text to the left
             foreground = theme.SecondaryButtonFont // Use theme font color
         }
 
         add(keyLabel)
         add(commandLabel)
 
-        // Set a maximum size to prevent items from becoming too tall
-        maximumSize = Dimension(Integer.MAX_VALUE, preferredSize.height)
+        // Explicitly set preferred and maximum size to enforce a consistent height
+        preferredSize = Dimension(150, ITEM_HEIGHT) // Give it a default width and fixed height
+        maximumSize = Dimension(Integer.MAX_VALUE, ITEM_HEIGHT)
     }
 
     fun setText(text: String, command: String) {
         keyLabel.text = text
         commandLabel.text = command
-        // The layout manager will handle resizing automatically
+        // Revalidate and repaint to ensure layout updates after text change
+        revalidate()
+        repaint()
     }
 
     fun getText(): String {

@@ -2,7 +2,7 @@ package UI
 
 import java.awt.Point
 
-class MacroMouseItem(val commandType: MouseCommandType, val point: Point) : MacroItem() {
+class MacroMouseItem(val commandType: MouseCommandType, val point: Point) : DraggableMacroItem() {
 
     enum class MouseCommandType {
         SNAP_TO,

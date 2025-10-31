@@ -3,71 +3,97 @@ package UI
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rtextarea.RTextScrollPane
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.awt.BorderLayout
 import java.awt.Point
+import java.beans.PropertyChangeEvent
+import java.beans.PropertyChangeListener
 import java.io.File
 import java.io.IOException
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-class MacroJsonEditorUI : JPanel() {
+class MacroJsonEditorUI : JPanel(), PropertyChangeListener {
 
     private val textArea: RSyntaxTextArea
     private val macroBar: MacroBar
-    private var currentFile: File? = null // To keep track of the file being edited
+    private var currentFile: File? = null
+    private var isUpdatingFromText = false
+    private var isUpdatingFromBar = false
 
     init {
         layout = BorderLayout()
 
-        // 1. Create and configure the text area for JSON
         textArea = RSyntaxTextArea(20, 60)
         textArea.syntaxEditingStyle = SyntaxConstants.SYNTAX_STYLE_JSON
         textArea.isCodeFoldingEnabled = true
 
-        // Apply the dark theme
         try {
-            val theme = org.fife.ui.rsyntaxtextarea.Theme.load(
-                javaClass.getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/dark.xml")
-            )
+            val theme = org.fife.ui.rsyntaxtextarea.Theme.load(javaClass.getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/dark.xml"))
             theme.apply(textArea)
         } catch (e: IOException) {
-            e.printStackTrace() // Theme file not found
+            e.printStackTrace()
         }
 
         val sp = RTextScrollPane(textArea)
-
-        // 2. Create the MacroBar
         macroBar = MacroBar()
+        macroBar.addPropertyChangeListener(this) // Corrected: Use addPropertyChangeListener
 
-        // 3. Create a split pane to hold the editor and the macro bar
         val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, sp, macroBar)
-        splitPane.resizeWeight = 0.7 // Editor gets 70% of the space
+        splitPane.resizeWeight = 0.7
 
         add(splitPane, BorderLayout.CENTER)
 
-        // 4. Add a listener to update the macro bar when the text changes
         textArea.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent?) {
-                updateMacroBarFromText()
-            }
-
-            override fun removeUpdate(e: DocumentEvent?) {
-                updateMacroBarFromText()
-            }
-
-            override fun changedUpdate(e: DocumentEvent?) {
-                updateMacroBarFromText()
-            }
+            override fun insertUpdate(e: DocumentEvent?) { if (!isUpdatingFromBar) updateMacroBarFromText() }
+            override fun removeUpdate(e: DocumentEvent?) { if (!isUpdatingFromBar) updateMacroBarFromText() }
+            override fun changedUpdate(e: DocumentEvent?) { if (!isUpdatingFromBar) updateMacroBarFromText() }
         })
 
-        // Load a default macro and trigger the initial update
         setText(createDefaultMacroJson(), null)
     }
 
+    override fun propertyChange(evt: PropertyChangeEvent?) {
+        // Listen for the specific property change from MacroBar indicating reorder
+        if (evt?.source == macroBar && evt.propertyName == "component.reordered") {
+            if (!isUpdatingFromText) {
+                updateTextFromMacroBar()
+            }
+        }
+    }
+
+    private fun updateTextFromMacroBar() {
+        isUpdatingFromBar = true
+        val events = JSONArray()
+        for (component in macroBar.macroItemsPanel.components) {
+            when (component) {
+                is MacroKeyItem -> {
+                    val jsonEvent = JSONObject()
+                    jsonEvent.put("type", "key")
+                    jsonEvent.put("command", component.getCommand())
+                    jsonEvent.put("key", component.getText())
+                    events.put(jsonEvent)
+                }
+                is MacroMouseItem -> {
+                    val jsonEvent = JSONObject()
+                    jsonEvent.put("type", "mouse")
+                    jsonEvent.put("command", component.commandType.name)
+                    jsonEvent.put("x", component.point.x)
+                    jsonEvent.put("y", component.point.y)
+                    events.put(jsonEvent)
+                }
+            }
+        }
+        val newJson = JSONObject().put("events", events)
+        setText(newJson.toString(4), currentFile)
+        isUpdatingFromBar = false
+    }
+
     private fun updateMacroBarFromText() {
+        isUpdatingFromText = true
         macroBar.clear()
 
         try {
@@ -92,25 +118,23 @@ class MacroJsonEditorUI : JPanel() {
                 }
             }
         } catch (e: JSONException) {
-            // JSON is likely malformed while the user is typing. This is expected.
+            // JSON is likely malformed, which is expected during typing.
         }
 
         macroBar.revalidate()
         macroBar.repaint()
+        isUpdatingFromText = false
     }
 
     private fun createDefaultMacroJson(): String {
-        return """{
-    "events": []
-}"""
+        return "{\n    \"events\": []\n}"
     }
 
     fun setText(text: String, file: File?) {
-        SwingUtilities.invokeLater {
-            textArea.text = text
-            textArea.caretPosition = 0
-            this.currentFile = file
-        }
+        // This MUST be synchronous to allow the isUpdatingFromBar flag to work correctly.
+        textArea.text = text
+        textArea.caretPosition = 0
+        this.currentFile = file
     }
 
     fun getText(): String {
@@ -143,11 +167,7 @@ class MacroJsonEditorUI : JPanel() {
         fileChooser.currentDirectory = defaultDir
 
         if (suggestedName != null) {
-            val finalSuggestedName = if (suggestedName.lowercase().endsWith(".json")) {
-                suggestedName
-            } else {
-                suggestedName + ".json"
-            }
+            val finalSuggestedName = if (suggestedName.lowercase().endsWith(".json")) suggestedName else "$suggestedName.json"
             fileChooser.selectedFile = File(defaultDir, finalSuggestedName)
         }
 
