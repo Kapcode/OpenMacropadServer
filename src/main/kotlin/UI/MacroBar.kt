@@ -1,11 +1,13 @@
 package UI
 
 import java.awt.BorderLayout
+import java.awt.KeyboardFocusManager
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
 import java.beans.PropertyChangeListener
 import javax.swing.*
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 
 class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPanel() {
 
@@ -23,13 +25,15 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         val newEventIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
         if (newEventIcon != null) {
             toolbar.addButton(newEventIcon, "New Event") { 
+                val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+                val wasEditorInFocus = focusOwner is RSyntaxTextArea
+
                 val selectedComponent = tabbedUI.selectedComponent
                 if (selectedComponent is MacroJsonEditorUI) {
                     val dialog = NewEventDialog(frame)
                     dialog.isVisible = true
-
                     dialog.createdEvent?.let { event ->
-                        selectedComponent.insertNewEvent(event)
+                        selectedComponent.insertNewEvent(event, wasEditorInFocus)
                     }
                 }
             }

@@ -5,10 +5,12 @@ import com.formdev.flatlaf.FlatDarkLaf
 import java.awt.AWTEvent
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.awt.KeyboardFocusManager
 import java.awt.Toolkit
 import java.awt.event.AWTEventListener
 import java.awt.event.MouseEvent
 import javax.swing.*
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 
 fun main() {
     SwingUtilities.invokeLater {
@@ -97,14 +99,15 @@ fun createAndShowGUI() {
     val newEventIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
     if (newEventIcon != null) {
         tabbedUIToolbar.addButton(newEventIcon, "New Event") { 
+            val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+            val wasEditorInFocus = focusOwner is RSyntaxTextArea
+
             val selectedComponent = tabbedUI.selectedComponent
             if (selectedComponent is MacroJsonEditorUI) {
                 val dialog = NewEventDialog(frame)
-                dialog.isVisible = true // This call blocks until the dialog is closed
-
-                // This code will execute AFTER the dialog is closed
+                dialog.isVisible = true
                 dialog.createdEvent?.let { event ->
-                    selectedComponent.insertNewEvent(event)
+                    selectedComponent.insertNewEvent(event, wasEditorInFocus)
                 }
             }
         }

@@ -19,7 +19,7 @@ import javax.swing.event.DocumentListener
 class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeListener {
 
     private val textArea: RSyntaxTextArea
-    private lateinit var macroBar: MacroBar // Use lateinit
+    private lateinit var macroBar: MacroBar
     private var currentFile: File? = null
     private var isUpdatingFromText = false
     private var isUpdatingFromBar = false
@@ -39,9 +39,8 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         }
 
         val sp = RTextScrollPane(textArea)
-        add(sp, BorderLayout.CENTER) // Add the text area first
+        add(sp, BorderLayout.CENTER)
 
-        // Defer MacroBar creation until the component is added to a hierarchy
         addPropertyChangeListener("ancestor") { e ->
             if (e.newValue != null && !::macroBar.isInitialized) {
                 val tabbedPane = SwingUtilities.getAncestorOfClass(JTabbedPane::class.java, this) as? TabbedUI
@@ -50,10 +49,11 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
                     macroBar.addPropertyChangeListener(this@MacroJsonEditorUI)
                     val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, sp, macroBar)
                     splitPane.resizeWeight = 0.7
-                    remove(sp) // Remove the old text area
-                    add(splitPane, BorderLayout.CENTER) // Add the new split pane
+                    remove(sp)
+                    add(splitPane, BorderLayout.CENTER)
                     revalidate()
                     repaint()
+                    updateMacroBarFromText()
                 }
             }
         }
@@ -75,20 +75,41 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         }
     }
 
-    fun insertNewEvent(newEvent: JSONObject) {
+    fun insertNewEvent(newEvent: JSONObject, wasEditorInFocus: Boolean) {
+        val originalText = getText()
+        val caretPosition = textArea.caretPosition
+
         try {
-            val currentJson = JSONObject(getText())
+            val currentJson = JSONObject(originalText)
             val events = currentJson.getJSONArray("events")
-            
-            events.put(newEvent)
+            var insertIndex = -1
+
+            if (wasEditorInFocus) {
+                val eventsArrayContentStartIndex = originalText.indexOf('[', originalText.indexOf("\"events\""))
+                if (caretPosition > eventsArrayContentStartIndex) {
+                    val textBeforeCaretInArray = originalText.substring(eventsArrayContentStartIndex, caretPosition)
+                    insertIndex = textBeforeCaretInArray.count { it == '}' }
+                }
+            }
+
+            if (insertIndex != -1 && insertIndex <= events.length()) {
+                events.put(insertIndex, newEvent)
+            } else {
+                events.put(newEvent)
+            }
             
             setText(currentJson.toString(4), currentFile)
             
-            textArea.caretPosition = textArea.document.length
         } catch (e: JSONException) {
-            val newJson = JSONObject().put("events", JSONArray().put(newEvent))
-            setText(newJson.toString(4), currentFile)
+            val newEventText = newEvent.toString(4)
+            SwingUtilities.invokeLater {
+                textArea.insert(newEventText, caretPosition)
+            }
         }
+    }
+
+    fun hasTextFocus(): Boolean {
+        return textArea.hasFocus()
     }
 
     private fun updateTextFromMacroBar() {
@@ -162,6 +183,9 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         textArea.text = text
         textArea.caretPosition = 0
         this.currentFile = file
+        if (::macroBar.isInitialized) {
+            updateMacroBarFromText()
+        }
     }
 
     fun getText(): String {
