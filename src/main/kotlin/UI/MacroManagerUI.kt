@@ -154,12 +154,13 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
         init {
             val theme = Theme()
             layout = BorderLayout()
-            background = theme.SecondaryBackgroundColor
+            background = theme.SecondaryBorderColor // Dark Gray background
             border = BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, theme.SecondaryBorderColor),
+                BorderFactory.createMatteBorder(0, 0, 1, 0, theme.PrimaryToolBarTooltipFontColor), // White separator line
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)
             )
 
+            // Left side: Checkbox and Name
             val leftPanel = JPanel(FlowLayout(FlowLayout.LEFT))
             leftPanel.isOpaque = false
             checkBox.isVisible = isSelectionMode
@@ -169,16 +170,17 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
             leftPanel.add(nameLabel)
             add(leftPanel, BorderLayout.WEST)
 
+            // Right side: Buttons
             val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
             buttonPanel.isOpaque = false
 
             val playIcon = SvgIconRenderer.getIcon("/play-button-outline-green-icon.svg", 16, 16)
             val playButton = if (playIcon != null) JButton(playIcon) else JButton("Play")
-            styleButton(playButton, theme.SecondaryButtonColor)
+            styleButton(playButton, theme.ThirdButtonColor)
 
             val editIcon = SvgIconRenderer.getIcon("/pencil-icon.svg", 16, 16)
             val editButton = if (editIcon != null) JButton(editIcon) else JButton("Edit")
-            styleButton(editButton, theme.SecondaryButtonColor)
+            styleButton(editButton, theme.ThirdButtonColor)
             editButton.addActionListener { 
                 val newEditor = MacroJsonEditorUI()
                 newEditor.setText(macroFile.readText(), macroFile)
@@ -208,6 +210,7 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
             buttonPanel.add(deleteButton)
             add(buttonPanel, BorderLayout.EAST)
 
+            // Set a fixed height by constraining the maximum size
             val prefHeight = preferredSize.height
             maximumSize = Dimension(Short.MAX_VALUE.toInt(), prefHeight)
         }
