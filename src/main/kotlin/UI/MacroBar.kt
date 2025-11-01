@@ -1,6 +1,7 @@
 package UI
 
 import java.awt.BorderLayout
+import java.awt.Dimension
 import java.awt.KeyboardFocusManager
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
@@ -21,13 +22,18 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
 
     init {
         val theme = Theme()
-        layout = BorderLayout()
+        layout = BoxLayout(this, BoxLayout.X_AXIS) // Use BoxLayout for the main panel
         background = theme.SecondaryBackgroundColor
 
         triggerSlot.border = BorderFactory.createTitledBorder("Trigger")
         triggerSlot.transferHandler = transferHandler
-        add(triggerSlot, BorderLayout.WEST)
+        // Give the trigger slot a fixed width to prevent it from being squashed
+        triggerSlot.preferredSize = Dimension(200, 0)
+        triggerSlot.maximumSize = Dimension(200, Integer.MAX_VALUE)
+        add(triggerSlot)
 
+        val itemsPanelWithToolbar = JPanel(BorderLayout())
+        
         val newEventIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
         if (newEventIcon != null) {
             toolbar.addButton(newEventIcon, "New Event") { 
@@ -77,7 +83,6 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             toolbar.addButton(redoIcon, "Redo last action") {}
         }
 
-        val itemsPanelWithToolbar = JPanel(BorderLayout())
         itemsPanelWithToolbar.add(toolbar, BorderLayout.NORTH)
 
         val scrollPane = JScrollPane(macroItemsPanel).apply {
@@ -86,8 +91,7 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             border = null
         }
         itemsPanelWithToolbar.add(scrollPane, BorderLayout.CENTER)
-
-        add(itemsPanelWithToolbar, BorderLayout.CENTER)
+        add(itemsPanelWithToolbar)
 
         repaint()
     }

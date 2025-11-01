@@ -11,6 +11,10 @@ class MacroKeyItem(keyText: String, command: String) : DraggableMacroItem() {
             super.keyLabel.foreground = Color.RED
             super.commandLabel.foreground = Color.RED
             displayText = keyText.uppercase()
+        } else {
+            // Otherwise, use the default foreground color
+            super.keyLabel.foreground = Theme().SecondaryButtonFont
+            super.commandLabel.foreground = Theme().SecondaryButtonFont
         }
         setText(displayText, command)
     }

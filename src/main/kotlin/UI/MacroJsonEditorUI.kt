@@ -202,6 +202,15 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
 
     private fun createDefaultMacroJson(): String {
         return """{
+    "trigger": {
+        "allowed_clients": ["pixel9a"],
+        "command": "ON-RELEASE",
+        "keys": [
+            "ctrl",
+            "alt",
+            "t"
+        ]
+    },
     "events": [
         {
             "type": "key",
