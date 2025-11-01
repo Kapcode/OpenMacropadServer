@@ -6,12 +6,21 @@ import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
 import java.beans.PropertyChangeListener
 import javax.swing.*
+import java.awt.Point
+import java.awt.Image
+import java.awt.image.BufferedImage
 
 class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPanel() {
 
     private val toolbar = ToolBarUI()
     val macroItemsPanel = JPanel().apply { layout = BoxLayout(this, BoxLayout.X_AXIS) }
     private val transferHandler = MacroItemTransferHandler()
+
+    private var isRecording = false
+    private val recordButton: ToolBarButton
+
+    private val greenCircleIcon = SvgIconRenderer.getIcon("/green-circle-shape-icon.svg", 24, 24)
+    private val redCircleIcon = SvgIconRenderer.getIcon("/red-circle-shape-icon.svg", 24, 24)
 
     init {
         val theme = Theme()
@@ -35,10 +44,25 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             }
         }
 
-        val recordIcon = SvgIconRenderer.getIcon("/play-button-outline-green-icon.svg", 24, 24)
-        if (recordIcon != null) {
-            toolbar.addButton(recordIcon, "Start/Stop Recording") {}
+        // Initialize record button with green icon and start state
+        recordButton = if (greenCircleIcon != null) {
+            ToolBarButton(greenCircleIcon, "Start Recording") {}
+        } else {
+            ToolBarButton("Record", "Start Recording") {}
         }
+        recordButton.addActionListener { 
+            isRecording = !isRecording
+            if (isRecording) {
+                if (redCircleIcon != null) recordButton.setIcon(redCircleIcon)
+                recordButton.setToolTipText("Stop Recording")
+                println("Recording Started") // Placeholder for actual recording logic
+            } else {
+                if (greenCircleIcon != null) recordButton.setIcon(greenCircleIcon)
+                recordButton.setToolTipText("Start Recording")
+                println("Recording Stopped") // Placeholder for actual recording logic
+            }
+        }
+        toolbar.add(recordButton)
 
         val undoIcon = SvgIconRenderer.getIcon("/undo-circle-outline-icon.svg", 24, 24)
         if (undoIcon != null) {
@@ -78,13 +102,15 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
     inner class MacroItemTransferHandler : TransferHandler() {
 
         private val macroItemIndexFlavor = DataFlavor(Integer::class.java, "Macro Item Index")
+        private var draggedComponent: MacroItem? = null // Store the component being dragged
 
-        override fun getSourceActions(c: JComponent?): Int {
-            return MOVE
+        override fun getSourceActions(c: JComponent): Int {
+            return MOVE // We are moving items
         }
 
-        override fun createTransferable(c: JComponent?): Transferable? {
+        override fun createTransferable(c: JComponent): Transferable? {
             if (c is MacroItem) {
+                draggedComponent = c // Store the component
                 val index = macroItemsPanel.components.indexOf(c)
                 if (index != -1) {
                     return object : Transferable {
@@ -97,12 +123,28 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             return null
         }
 
-        override fun canImport(support: TransferSupport?): Boolean {
-            return support?.isDataFlavorSupported(macroItemIndexFlavor) == true && support.component == macroItemsPanel
+        override fun getDragImage(): Image? {
+            // Use the stored draggedComponent to create the image
+            val c = draggedComponent ?: return null
+            val image = BufferedImage(c.width, c.height, BufferedImage.TYPE_INT_ARGB)
+            val g = image.createGraphics()
+            c.paint(g)
+            g.dispose()
+            return image
         }
 
-        override fun importData(support: TransferSupport?): Boolean {
-            if (!canImport(support) || support == null) {
+        override fun getDragImageOffset(): Point? {
+            // Use the stored draggedComponent and its dragStartEvent
+            val c = draggedComponent as? DraggableMacroItem ?: return null
+            return c.dragStartEvent?.point
+        }
+
+        override fun canImport(support: TransferSupport): Boolean {
+            return support.isDataFlavorSupported(macroItemIndexFlavor) && support.component == macroItemsPanel
+        }
+
+        override fun importData(support: TransferSupport): Boolean {
+            if (!canImport(support)) {
                 return false
             }
 
@@ -144,6 +186,11 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             this@MacroBar.notifyItemsReordered()
 
             return true
+        }
+
+        override fun exportDone(source: JComponent?, data: Transferable?, action: Int) {
+            // Clear the stored component after the drag is complete
+            draggedComponent = null
         }
     }
 }

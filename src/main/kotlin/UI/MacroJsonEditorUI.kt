@@ -127,11 +127,11 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         val root = LinkedHashMap<String, Any>()
         val events = JSONArray()
 
-        for (component in macroBar.macroItemsPanel.components) {
+        for ((index, component) in macroBar.macroItemsPanel.components.withIndex()) {
             val map = LinkedHashMap<String, Any>()
             when (component) {
                 is MacroKeyItem -> {
-                    map["type"] = if (macroBar.macroItemsPanel.components.indexOf(component) == 0 && component.getCommand() == "ON-RELEASE") "trigger" else "key"
+                    map["type"] = if (index == 0 && component.getCommand() == "ON-RELEASE") "trigger" else "key"
                     map["command"] = component.getCommand()
                     val keys = component.getText().split(",").map { it.trim() }
                     if (keys.size > 1) {
@@ -191,50 +191,52 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
     }
 
     private fun createDefaultMacroJson(): String {
-        return """{
-    "events": [
-        {
-            "type": "key",
-            "command": "PRESS",
-            "key": "Ctrl"
-        },
-        {
-            "type": "key",
-            "command": "PRESS",
-            "key": "C"
-        },
-        {
-            "type": "key",
-            "command": "RELEASE",
-            "key": "C"
-        },
-        {
-            "type": "key",
-            "command": "RELEASE",
-            "key": "Ctrl"
-        },
-        {
-            "type": "key",
-            "command": "PRESS",
-            "key": "Ctrl"
-        },
-        {
-            "type": "key",
-            "command": "PRESS",
-            "key": "V"
-        },
-        {
-            "type": "key",
-            "command": "RELEASE",
-            "key": "V"
-        },
-        {
-            "type": "key",
-            "command": "RELEASE",
-            "key": "Ctrl"
-        }
-    ]
-}"""
+        return """{"events": [
+    {
+        "type": "trigger",
+        "command": "ON-RELEASE",
+        "keys": [
+            "ctrl",
+            "alt",
+            "t"
+        ]
+    },
+    {
+        "type": "key",
+        "command": "PRESS",
+        "key": "C"
+    },
+    {
+        "type": "key",
+        "command": "RELEASE",
+        "key": "Ctrl"
+    },
+    {
+        "type": "key",
+        "command": "RELEASE",
+        "key": "C"
+    },
+    {
+        "type": "key",
+        "command": "PRESS",
+        "key": "Ctrl"
+    },
+    {
+        "type": "key",
+        "command": "PRESS",
+        "key": "V"
+    },
+    {
+        "type": "key",
+        "command": "RELEASE",
+        "key": "V"
+    },
+    {
+        "type": "key",
+        "command": "RELEASE",
+        "key": "Ctrl"
+    }
+]}"""
     }
 
     fun setText(text: String, file: File?) {

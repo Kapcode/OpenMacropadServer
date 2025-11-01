@@ -1,5 +1,6 @@
 package UI
 
+import MacroPlayer
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
@@ -160,6 +161,7 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)
             )
 
+            // Left side: Checkbox and Name
             val leftPanel = JPanel(FlowLayout(FlowLayout.LEFT))
             leftPanel.isOpaque = false
             checkBox.isVisible = isSelectionMode
@@ -169,6 +171,7 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
             leftPanel.add(nameLabel)
             add(leftPanel, BorderLayout.WEST)
 
+            // Right side: Buttons
             val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
             buttonPanel.isOpaque = false
 
@@ -176,6 +179,19 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
             val playButton = if (playIcon != null) JButton(playIcon) else JButton("Play")
             playButton.toolTipText = "Play Macro"
             styleButton(playButton, theme.ThirdButtonColor)
+            playButton.addActionListener { 
+                Thread { // Run on a separate thread to avoid blocking the EDT
+                    try {
+                        val macroPlayer = MacroPlayer()
+                        macroPlayer.playMacro(macroFile.readText())
+                    } catch (e: Exception) {
+                        SwingUtilities.invokeLater { // Show error on EDT
+                            JOptionPane.showMessageDialog(this, "Error playing macro: ${e.message}", "Macro Playback Error", JOptionPane.ERROR_MESSAGE)
+                        }
+                        e.printStackTrace()
+                    }
+                }.start()
+            }
 
             val editIcon = SvgIconRenderer.getIcon("/pencil-icon.svg", 16, 16)
             val editButton = if (editIcon != null) JButton(editIcon) else JButton("Edit")

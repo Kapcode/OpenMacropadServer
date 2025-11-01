@@ -10,8 +10,8 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 
 open class MacroItem : JPanel() {
-    private val keyLabel: JLabel
-    private val commandLabel: JLabel
+    protected val keyLabel: JLabel
+    protected val commandLabel: JLabel
 
     companion object {
         const val ITEM_HEIGHT = 40 // Define a standard height for all macro items
@@ -46,7 +46,7 @@ open class MacroItem : JPanel() {
         add(commandLabel)
 
         // Explicitly set preferred and maximum size to enforce a consistent height
-        preferredSize = Dimension(150, ITEM_HEIGHT) // Give it a default width and fixed height
+        preferredSize = Dimension(150, ITEM_HEIGHT)
         maximumSize = Dimension(Integer.MAX_VALUE, ITEM_HEIGHT)
     }
 
