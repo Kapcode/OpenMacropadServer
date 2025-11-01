@@ -3,7 +3,7 @@ package UI
 class MacroKeyItem(keyText: String, command: String) : DraggableMacroItem() {
 
     init {
-        // Use the parent's setText method to display the key and command.
+        // The keyText can now be a comma-separated list
         setText(keyText, command)
     }
 }

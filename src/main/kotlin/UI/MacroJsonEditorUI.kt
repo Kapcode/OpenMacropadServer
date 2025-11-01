@@ -8,6 +8,8 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.awt.BorderLayout
 import java.awt.Point
+import java.awt.event.FocusAdapter
+import java.awt.event.FocusEvent
 import java.beans.PropertyChangeEvent
 import java.beans.PropertyChangeListener
 import java.io.File
@@ -15,6 +17,7 @@ import java.io.IOException
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
+import java.util.LinkedHashMap
 
 class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeListener {
 
@@ -117,26 +120,26 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         isUpdatingFromBar = true
         val events = JSONArray()
         for (component in macroBar.macroItemsPanel.components) {
+            val map = LinkedHashMap<String, Any>()
             when (component) {
                 is MacroKeyItem -> {
-                    val jsonEvent = JSONObject()
-                    jsonEvent.put("type", "key")
-                    jsonEvent.put("command", component.getCommand())
-                    jsonEvent.put("key", component.getText())
-                    events.put(jsonEvent)
+                    map["type"] = "key"
+                    map["command"] = component.getCommand()
+                    map["key"] = component.getText()
+                    events.put(JSONObject(map))
                 }
                 is MacroMouseItem -> {
-                    val jsonEvent = JSONObject()
-                    jsonEvent.put("type", "mouse")
-                    jsonEvent.put("command", component.commandType.name)
-                    jsonEvent.put("x", component.point.x)
-                    jsonEvent.put("y", component.point.y)
-                    events.put(jsonEvent)
+                    map["type"] = "mouse"
+                    map["command"] = component.commandType.name
+                    map["x"] = component.point.x
+                    map["y"] = component.point.y
+                    events.put(JSONObject(map))
                 }
             }
         }
-        val newJson = JSONObject().put("events", events)
-        setText(newJson.toString(4), currentFile)
+        val root = LinkedHashMap<String, Any>()
+        root["events"] = events
+        setText(JSONObject(root).toString(4), currentFile)
         isUpdatingFromBar = false
     }
 
@@ -153,7 +156,7 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
                 val eventObject = events.getJSONObject(i)
                 when (eventObject.getString("type")) {
                     "key" -> {
-                        val keyText = eventObject.getString("key")
+                        val keyText = eventObject.optString("key", eventObject.optJSONArray("keys")?.join(","))
                         val command = eventObject.getString("command")
                         macroBar.addMacroItem(MacroKeyItem(keyText, command))
                     }
@@ -176,7 +179,50 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
     }
 
     private fun createDefaultMacroJson(): String {
-        return "{\n    \"events\": []\n}"
+        return """{
+    "events": [
+        {
+            "type": "key",
+            "command": "PRESS",
+            "key": "Ctrl"
+        },
+        {
+            "type": "key",
+            "command": "PRESS",
+            "key": "C"
+        },
+        {
+            "type": "key",
+            "command": "RELEASE",
+            "key": "C"
+        },
+        {
+            "type": "key",
+            "command": "RELEASE",
+            "key": "Ctrl"
+        },
+        {
+            "type": "key",
+            "command": "PRESS",
+            "key": "Ctrl"
+        },
+        {
+            "type": "key",
+            "command": "PRESS",
+            "key": "V"
+        },
+        {
+            "type": "key",
+            "command": "RELEASE",
+            "key": "V"
+        },
+        {
+            "type": "key",
+            "command": "RELEASE",
+            "key": "Ctrl"
+        }
+    ]
+}"""
     }
 
     fun setText(text: String, file: File?) {

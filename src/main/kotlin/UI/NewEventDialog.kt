@@ -6,6 +6,7 @@ import java.awt.CardLayout
 import java.awt.FlowLayout
 import java.awt.GridLayout
 import javax.swing.*
+import java.util.LinkedHashMap
 
 class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event", true) {
 
@@ -18,6 +19,7 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
 
     private lateinit var keyTextField: JTextField
     private lateinit var keyCommandComboBox: JComboBox<String>
+    private lateinit var isTriggerCheckBox: JCheckBox
 
     private lateinit var mouseCommandComboBox: JComboBox<String>
     private lateinit var xCoordinateField: JTextField
@@ -66,13 +68,17 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
         val panel = JPanel(GridLayout(0, 2, 5, 5))
         panel.border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
 
-        panel.add(JLabel("Key:"))
+        panel.add(JLabel("Key(s):"))
         keyTextField = JTextField()
         panel.add(keyTextField)
 
         panel.add(JLabel("Command:"))
-        keyCommandComboBox = JComboBox(arrayOf("PRESS", "RELEASE"))
+        keyCommandComboBox = JComboBox(arrayOf("PRESS", "RELEASE", "ON-RELEASE"))
         panel.add(keyCommandComboBox)
+
+        panel.add(JLabel("Is Trigger:"))
+        isTriggerCheckBox = JCheckBox()
+        panel.add(isTriggerCheckBox)
 
         cardsPanel.add(panel, keyEventCard)
     }
@@ -98,29 +104,42 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
 
     private fun createEvent(): Boolean {
         val selectedType = eventTypeComboBox.selectedItem as String
-        val jsonEvent = JSONObject()
+        val map = LinkedHashMap<String, Any>() // Use LinkedHashMap to preserve order
 
         return when (selectedType) {
             keyEventCard -> {
-                if (keyTextField.text.isBlank()) {
-                    JOptionPane.showMessageDialog(this, "Key cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE)
+                val keyInput = keyTextField.text.trim()
+                if (keyInput.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Key(s) cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE)
                     return false
                 }
-                jsonEvent.put("type", "key")
-                jsonEvent.put("key", keyTextField.text)
-                jsonEvent.put("command", keyCommandComboBox.selectedItem as String)
-                createdEvent = jsonEvent
+
+                if (isTriggerCheckBox.isSelected) {
+                    map["type"] = "trigger"
+                    map["command"] = keyCommandComboBox.selectedItem as String
+                    val keys = keyInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    map["keys"] = keys
+                } else {
+                    map["type"] = "key"
+                    map["command"] = keyCommandComboBox.selectedItem as String
+                    if (keyInput.contains(",")) {
+                        JOptionPane.showMessageDialog(this, "Only triggers can have multiple keys.", "Input Error", JOptionPane.ERROR_MESSAGE)
+                        return false
+                    }
+                    map["key"] = keyInput
+                }
+                createdEvent = JSONObject(map)
                 true
             }
             mouseEventCard -> {
                 try {
                     val x = xCoordinateField.text.toInt()
                     val y = yCoordinateField.text.toInt()
-                    jsonEvent.put("type", "mouse")
-                    jsonEvent.put("command", mouseCommandComboBox.selectedItem as String)
-                    jsonEvent.put("x", x)
-                    jsonEvent.put("y", y)
-                    createdEvent = jsonEvent
+                    map["type"] = "mouse"
+                    map["command"] = mouseCommandComboBox.selectedItem as String
+                    map["x"] = x
+                    map["y"] = y
+                    createdEvent = JSONObject(map)
                     true
                 } catch (e: NumberFormatException) {
                     JOptionPane.showMessageDialog(this, "Coordinates must be valid integers.", "Input Error", JOptionPane.ERROR_MESSAGE)

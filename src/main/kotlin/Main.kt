@@ -9,6 +9,7 @@ import java.awt.KeyboardFocusManager
 import java.awt.Toolkit
 import java.awt.event.AWTEventListener
 import java.awt.event.MouseEvent
+import java.io.File
 import javax.swing.*
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 
@@ -62,7 +63,23 @@ fun createAndShowGUI() {
     val macroManagerToolbar = ToolBarUI()
     val addIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
     if (addIcon != null) {
-        macroManagerToolbar.addButton(addIcon, "Add Macro") { println("add") }
+        macroManagerToolbar.addButton(addIcon, "Add Macro") { 
+            val macroFolder = File(System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros")
+            var newMacroFile: File
+            var i = 1
+            do {
+                newMacroFile = File(macroFolder, "New Macro $i.json")
+                i++
+            } while (newMacroFile.exists())
+
+            newMacroFile.createNewFile()
+            newMacroFile.writeText("{\n    \"events\": []\n}")
+
+            val newEditor = MacroJsonEditorUI(frame)
+            newEditor.setText(newMacroFile.readText(), newMacroFile)
+            tabbedUI.add(newMacroFile.name, newEditor)
+            tabbedUI.setSelectedComponent(newEditor)
+        }
     }
 
     val removeIcon = SvgIconRenderer.getIcon("/remove-file-icon.svg", 24, 24)
