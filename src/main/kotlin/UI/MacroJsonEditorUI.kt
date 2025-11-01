@@ -79,35 +79,41 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
     }
 
     fun insertNewEvent(newEvent: JSONObject, wasEditorInFocus: Boolean) {
-        val originalText = getText()
-        val caretPosition = textArea.caretPosition
-
         try {
-            val currentJson = JSONObject(originalText)
-            val events = currentJson.getJSONArray("events")
-            var insertIndex = -1
+            val currentJson = JSONObject(getText())
+            val events = currentJson.optJSONArray("events") ?: JSONArray()
 
-            if (wasEditorInFocus) {
-                val eventsArrayContentStartIndex = originalText.indexOf('[', originalText.indexOf("\"events\""))
-                if (caretPosition > eventsArrayContentStartIndex) {
-                    val textBeforeCaretInArray = originalText.substring(eventsArrayContentStartIndex, caretPosition)
-                    insertIndex = textBeforeCaretInArray.count { it == '}' }
+            if (newEvent.optString("type") == "trigger") {
+                if (events.length() > 0 && events.getJSONObject(0).optString("type") == "trigger") {
+                    events.put(0, newEvent) // Replace existing trigger
+                } else {
+                    events.put(0, newEvent) // Insert new trigger at the beginning
+                }
+            } else {
+                var insertIndex = -1
+                if (wasEditorInFocus) {
+                    val caretPosition = textArea.caretPosition
+                    val textBeforeCaret = getText().substring(0, caretPosition)
+                    val eventsArrayContentStartIndex = textBeforeCaret.indexOf("\"events\": [")
+                    if (eventsArrayContentStartIndex != -1) {
+                        val contentBeforeCaretInArray = textBeforeCaret.substring(eventsArrayContentStartIndex)
+                        insertIndex = contentBeforeCaretInArray.count { it == '}' }
+                    }
+                }
+
+                if (insertIndex != -1 && insertIndex <= events.length()) {
+                    events.put(insertIndex, newEvent)
+                } else {
+                    events.put(newEvent)
                 }
             }
-
-            if (insertIndex != -1 && insertIndex <= events.length()) {
-                events.put(insertIndex, newEvent)
-            } else {
-                events.put(newEvent)
-            }
             
+            currentJson.put("events", events)
             setText(currentJson.toString(4), currentFile)
             
         } catch (e: JSONException) {
             val newEventText = newEvent.toString(4)
-            SwingUtilities.invokeLater {
-                textArea.insert(newEventText, caretPosition)
-            }
+            textArea.insert(newEventText, textArea.caretPosition)
         }
     }
 
@@ -118,14 +124,21 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
     private fun updateTextFromMacroBar() {
         if (!::macroBar.isInitialized) return
         isUpdatingFromBar = true
+        val root = LinkedHashMap<String, Any>()
         val events = JSONArray()
+
         for (component in macroBar.macroItemsPanel.components) {
             val map = LinkedHashMap<String, Any>()
             when (component) {
                 is MacroKeyItem -> {
-                    map["type"] = "key"
+                    map["type"] = if (macroBar.macroItemsPanel.components.indexOf(component) == 0 && component.getCommand() == "ON-RELEASE") "trigger" else "key"
                     map["command"] = component.getCommand()
-                    map["key"] = component.getText()
+                    val keys = component.getText().split(",").map { it.trim() }
+                    if (keys.size > 1) {
+                        map["keys"] = keys
+                    } else {
+                        map["key"] = keys.first()
+                    }
                     events.put(JSONObject(map))
                 }
                 is MacroMouseItem -> {
@@ -137,7 +150,6 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
                 }
             }
         }
-        val root = LinkedHashMap<String, Any>()
         root["events"] = events
         setText(JSONObject(root).toString(4), currentFile)
         isUpdatingFromBar = false
@@ -155,7 +167,7 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
             for (i in 0 until events.length()) {
                 val eventObject = events.getJSONObject(i)
                 when (eventObject.getString("type")) {
-                    "key" -> {
+                    "trigger", "key" -> {
                         val keyText = eventObject.optString("key", eventObject.optJSONArray("keys")?.join(","))
                         val command = eventObject.getString("command")
                         macroBar.addMacroItem(MacroKeyItem(keyText, command))
