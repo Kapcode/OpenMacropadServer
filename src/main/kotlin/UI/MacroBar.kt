@@ -1,6 +1,7 @@
 package UI
 
 import java.awt.BorderLayout
+import java.awt.KeyboardFocusManager
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
@@ -9,18 +10,13 @@ import javax.swing.*
 import java.awt.Point
 import java.awt.Image
 import java.awt.image.BufferedImage
+import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent
 
 class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPanel() {
 
     private val toolbar = ToolBarUI()
     val macroItemsPanel = JPanel().apply { layout = BoxLayout(this, BoxLayout.X_AXIS) }
     private val transferHandler = MacroItemTransferHandler()
-
-    private var isRecording = false
-    private val recordButton: ToolBarButton
-
-    private val greenCircleIcon = SvgIconRenderer.getIcon("/green-circle-shape-icon.svg", 24, 24)
-    private val redCircleIcon = SvgIconRenderer.getIcon("/red-circle-shape-icon.svg", 24, 24)
 
     init {
         val theme = Theme()
@@ -32,9 +28,11 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         val newEventIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
         if (newEventIcon != null) {
             toolbar.addButton(newEventIcon, "New Event") { 
+                val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+                val wasEditorInFocus = focusOwner is JTextArea
+
                 val selectedComponent = tabbedUI.selectedComponent
                 if (selectedComponent is MacroJsonEditorUI) {
-                    val wasEditorInFocus = selectedComponent.hasTextFocus()
                     val dialog = NewEventDialog(frame)
                     dialog.isVisible = true
                     dialog.createdEvent?.let { event ->
@@ -44,22 +42,24 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             }
         }
 
-        // Initialize record button with green icon and start state
-        recordButton = if (greenCircleIcon != null) {
-            ToolBarButton(greenCircleIcon, "Start Recording") {}
+        val recordIcon = SvgIconRenderer.getIcon("/green-circle-shape-icon.svg", 24, 24)
+        val stopIcon = SvgIconRenderer.getIcon("/red-circle-shape-icon.svg", 24, 24)
+        val recordButton = if (recordIcon != null) {
+            ToolBarButton(recordIcon, "Start Recording") {}
         } else {
             ToolBarButton("Record", "Start Recording") {}
         }
+        var isRecording = false
         recordButton.addActionListener { 
             isRecording = !isRecording
             if (isRecording) {
-                if (redCircleIcon != null) recordButton.setIcon(redCircleIcon)
+                if (stopIcon != null) recordButton.setIcon(stopIcon)
                 recordButton.setToolTipText("Stop Recording")
-                println("Recording Started") // Placeholder for actual recording logic
+                println("Recording Started") // Placeholder
             } else {
-                if (greenCircleIcon != null) recordButton.setIcon(greenCircleIcon)
+                if (recordIcon != null) recordButton.setIcon(recordIcon)
                 recordButton.setToolTipText("Start Recording")
-                println("Recording Stopped") // Placeholder for actual recording logic
+                println("Recording Stopped") // Placeholder
             }
         }
         toolbar.add(recordButton)
@@ -75,7 +75,14 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         }
 
         add(toolbar, BorderLayout.NORTH)
-        add(macroItemsPanel, BorderLayout.CENTER)
+        
+        // Wrap the macroItemsPanel in a JScrollPane for horizontal scrolling
+        val scrollPane = JScrollPane(macroItemsPanel).apply {
+            horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+            verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_NEVER
+            border = null // Remove the default border
+        }
+        add(scrollPane, BorderLayout.CENTER)
 
         repaint()
     }
@@ -124,7 +131,6 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         }
 
         override fun getDragImage(): Image? {
-            // Use the stored draggedComponent to create the image
             val c = draggedComponent ?: return null
             val image = BufferedImage(c.width, c.height, BufferedImage.TYPE_INT_ARGB)
             val g = image.createGraphics()
@@ -134,7 +140,6 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         }
 
         override fun getDragImageOffset(): Point? {
-            // Use the stored draggedComponent and its dragStartEvent
             val c = draggedComponent as? DraggableMacroItem ?: return null
             return c.dragStartEvent?.point
         }
@@ -189,7 +194,6 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         }
 
         override fun exportDone(source: JComponent?, data: Transferable?, action: Int) {
-            // Clear the stored component after the drag is complete
             draggedComponent = null
         }
     }
