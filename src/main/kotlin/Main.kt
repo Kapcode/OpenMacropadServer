@@ -12,6 +12,8 @@ import java.awt.event.MouseEvent
 import java.io.File
 import javax.swing.*
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 
 fun main() {
     SwingUtilities.invokeLater {
@@ -58,7 +60,16 @@ fun createAndShowGUI() {
     val consoleUI = ConsoleUI(wifiServer)
     val connectedDevicesUI = ConnectedDevicesUI()
     val tabbedUI = TabbedUI()
-    val macroManagerUI = MacroManagerUI(tabbedUI)
+    val macroPlayer = MacroPlayer() // Create MacroPlayer instance
+    val activeMacroManager = ActiveMacroManager(macroPlayer) // Create ActiveMacroManager
+    val macroManagerUI = MacroManagerUI(tabbedUI, activeMacroManager) // Pass ActiveMacroManager
+
+    // Add a WindowListener to the frame to shut down JNativeHook when the application closes
+    frame.addWindowListener(object : WindowAdapter() {
+        override fun windowClosing(e: WindowEvent?) {
+            activeMacroManager.shutdown()
+        }
+    })
 
     val macroManagerToolbar = ToolBarUI()
     val addIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)

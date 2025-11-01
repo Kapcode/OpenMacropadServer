@@ -1,6 +1,8 @@
 package UI
 
+import ActiveMacroManager
 import MacroPlayer
+import org.json.JSONObject
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
@@ -12,7 +14,7 @@ import java.nio.file.WatchKey
 import java.nio.file.WatchService
 import javax.swing.*
 
-class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
+class MacroManagerUI(private val tabbedUI: TabbedUI, private val activeMacroManager: ActiveMacroManager) : JPanel() {
 
     private val defaultMacroPath = System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros"
     private var macroFolder = File(defaultMacroPath)
@@ -33,7 +35,8 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
         val titleLabel = JLabel("Macro Manager")
         titleLabel.font = titleLabel.font.deriveFont(Font.BOLD, 14f)
         titleLabel.foreground = theme.SecondaryFontColor
-        headerPanel.add(titleLabel, BorderLayout.WEST)
+        titleLabel.horizontalAlignment = SwingConstants.CENTER // Center the text
+        headerPanel.add(titleLabel, BorderLayout.CENTER) // Center the label in the panel
         add(headerPanel, BorderLayout.NORTH)
 
         macrosPanel = JPanel()
@@ -76,6 +79,9 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
         if (confirm == JOptionPane.YES_OPTION) {
             selectedItems.forEach { item ->
                 val macroFile = item.getMacroFile()
+                // Remove from active macros if it was active
+                activeMacroManager.removeActiveMacro(macroFile)
+
                 for (i in 0 until tabbedUI.tabCount) {
                     val component = tabbedUI.getComponentAt(i)
                     if (component is MacroJsonEditorUI && component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
@@ -150,7 +156,8 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
     }
 
     inner class MacroManagerItem(private val macroFile: File) : JPanel() {
-        private val checkBox = JCheckBox()
+        private val selectionCheckBox = JCheckBox() // For batch delete selection
+        private val toggleSwitch = JCheckBox() // For on/off state
 
         init {
             val theme = Theme()
@@ -161,11 +168,35 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)
             )
 
-            // Left side: Checkbox and Name
+            // Left side: Selection Checkbox, On/Off Label, Toggle Switch, and Name
             val leftPanel = JPanel(FlowLayout(FlowLayout.LEFT))
             leftPanel.isOpaque = false
-            checkBox.isVisible = isSelectionMode
-            leftPanel.add(checkBox)
+            selectionCheckBox.isVisible = isSelectionMode
+            leftPanel.add(selectionCheckBox)
+
+            val onOffLabel = JLabel("On/Off:")
+            onOffLabel.font = onOffLabel.font.deriveFont(Font.PLAIN, 10f) // Smaller font
+            onOffLabel.foreground = theme.SecondaryFontColor
+            leftPanel.add(onOffLabel)
+
+            leftPanel.add(toggleSwitch) // Add the toggle switch
+            toggleSwitch.toolTipText = "Toggle macro on/off for global hotkey"
+            toggleSwitch.isSelected = activeMacroManager.isMacroActive(macroFile)
+            toggleSwitch.addActionListener { 
+                if (toggleSwitch.isSelected) {
+                    try {
+                        val macroJson = JSONObject(macroFile.readText())
+                        activeMacroManager.addActiveMacro(macroFile, macroJson)
+                    } catch (e: Exception) {
+                        JOptionPane.showMessageDialog(this, "Error activating macro: ${e.message}", "Activation Error", JOptionPane.ERROR_MESSAGE)
+                        toggleSwitch.isSelected = false // Revert toggle state
+                        e.printStackTrace()
+                    }
+                } else {
+                    activeMacroManager.removeActiveMacro(macroFile)
+                }
+            }
+
             val nameLabel = JLabel(macroFile.nameWithoutExtension)
             nameLabel.foreground = theme.SecondaryFontColor
             leftPanel.add(nameLabel)
@@ -212,6 +243,9 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
             deleteButton.addActionListener { 
                 val confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete '${macroFile.name}'?", "Confirm Deletion", JOptionPane.YES_NO_OPTION)
                 if (confirm == JOptionPane.YES_OPTION) {
+                    // Remove from active macros if it was active
+                    activeMacroManager.removeActiveMacro(macroFile)
+
                     for (i in 0 until tabbedUI.tabCount) {
                         val component = tabbedUI.getComponentAt(i)
                         if (component is MacroJsonEditorUI && component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
@@ -240,7 +274,7 @@ class MacroManagerUI(private val tabbedUI: TabbedUI) : JPanel() {
             button.isFocusable = false
         }
 
-        fun isSelected(): Boolean = checkBox.isSelected
+        fun isSelected(): Boolean = selectionCheckBox.isSelected
         fun getMacroFile(): File = macroFile
     }
 }

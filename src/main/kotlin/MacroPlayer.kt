@@ -5,12 +5,12 @@ import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 
 class MacroPlayer {
-    fun playMacro(macroJSON: String) {
+    fun playMacro(macroJSON: String, startIndex: Int = 0) {
         val json = JSONObject(macroJSON)
         val eventsArray = json.getJSONArray("events")
         val robot = Robot()
 
-        for (i in 0 until eventsArray.length()) {
+        for (i in startIndex until eventsArray.length()) {
             val eventObject = eventsArray.getJSONObject(i)
             when (eventObject.getString("type")) {
                 "key" -> {
