@@ -135,7 +135,7 @@ fun createAndShowGUI() {
                 val dialog = NewEventDialog(frame)
                 dialog.isVisible = true
                 dialog.createdEvent?.let { event ->
-                    selectedComponent.insertNewEvent(event, wasEditorInFocus)
+                    selectedComponent.insertNewEvent(event, dialog.isTriggerEvent, wasEditorInFocus)
                 }
             }
         }

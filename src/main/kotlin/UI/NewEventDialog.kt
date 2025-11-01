@@ -20,12 +20,16 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
     private lateinit var keyTextField: JTextField
     private lateinit var keyCommandComboBox: JComboBox<String>
     private lateinit var isTriggerCheckBox: JCheckBox
+    private lateinit var allowedClientsField: JTextField
+    private lateinit var allowedClientsLabel: JLabel
 
     private lateinit var mouseCommandComboBox: JComboBox<String>
     private lateinit var xCoordinateField: JTextField
     private lateinit var yCoordinateField: JTextField
 
     var createdEvent: JSONObject? = null
+        private set
+    var isTriggerEvent: Boolean = false
         private set
 
     init {
@@ -80,6 +84,22 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
         isTriggerCheckBox = JCheckBox()
         panel.add(isTriggerCheckBox)
 
+        allowedClientsLabel = JLabel("Allowed Clients (comma-separated):")
+        allowedClientsField = JTextField()
+        allowedClientsLabel.isVisible = false
+        allowedClientsField.isVisible = false
+        panel.add(allowedClientsLabel)
+        panel.add(allowedClientsField)
+
+        isTriggerCheckBox.addActionListener { 
+            val isTrigger = isTriggerCheckBox.isSelected
+            allowedClientsLabel.isVisible = isTrigger
+            allowedClientsField.isVisible = isTrigger
+            // Only ON-RELEASE is a valid trigger command
+            keyCommandComboBox.selectedItem = if (isTrigger) "ON-RELEASE" else "PRESS"
+            pack() // Resize dialog to fit new fields
+        }
+
         cardsPanel.add(panel, keyEventCard)
     }
 
@@ -105,6 +125,7 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
     private fun createEvent(): Boolean {
         val selectedType = eventTypeComboBox.selectedItem as String
         val map = LinkedHashMap<String, Any>() // Use LinkedHashMap to preserve order
+        isTriggerEvent = isTriggerCheckBox.isSelected
 
         return when (selectedType) {
             keyEventCard -> {
@@ -114,11 +135,15 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
                     return false
                 }
 
-                if (isTriggerCheckBox.isSelected) {
-                    map["type"] = "trigger"
-                    map["command"] = keyCommandComboBox.selectedItem as String
+                if (isTriggerEvent) {
+                    map["command"] = "ON-RELEASE"
                     val keys = keyInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                     map["keys"] = keys
+
+                    val clients = allowedClientsField.text.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    if (clients.isNotEmpty()) {
+                        map["allowed_clients"] = clients
+                    }
                 } else {
                     map["type"] = "key"
                     map["command"] = keyCommandComboBox.selectedItem as String

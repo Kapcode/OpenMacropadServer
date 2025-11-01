@@ -78,18 +78,13 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         }
     }
 
-    fun insertNewEvent(newEvent: JSONObject, wasEditorInFocus: Boolean) {
+    fun insertNewEvent(newEvent: JSONObject, isTrigger: Boolean, wasEditorInFocus: Boolean) {
         try {
             val currentJson = JSONObject(getText())
-            val events = currentJson.optJSONArray("events") ?: JSONArray()
-
-            if (newEvent.optString("type") == "trigger") {
-                if (events.length() > 0 && events.getJSONObject(0).optString("type") == "trigger") {
-                    events.put(0, newEvent) // Replace existing trigger
-                } else {
-                    events.put(0, newEvent) // Insert new trigger at the beginning
-                }
+            if (isTrigger) {
+                currentJson.put("trigger", newEvent)
             } else {
+                val events = currentJson.optJSONArray("events") ?: JSONArray()
                 var insertIndex = -1
                 if (wasEditorInFocus) {
                     val caretPosition = textArea.caretPosition
@@ -106,9 +101,9 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
                 } else {
                     events.put(newEvent)
                 }
+                currentJson.put("events", events)
             }
             
-            currentJson.put("events", events)
             setText(currentJson.toString(4), currentFile)
             
         } catch (e: JSONException) {
@@ -127,18 +122,25 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         val root = LinkedHashMap<String, Any>()
         val events = JSONArray()
 
-        for ((index, component) in macroBar.macroItemsPanel.components.withIndex()) {
+        macroBar.getTriggerItem()?.let { triggerItem ->
+            val triggerMap = LinkedHashMap<String, Any>()
+            triggerMap["command"] = triggerItem.getCommand()
+            val keys = triggerItem.getText().split(",").map { it.trim() }
+            if (keys.size > 1) {
+                triggerMap["keys"] = keys
+            } else {
+                triggerMap["key"] = keys.first()
+            }
+            root["trigger"] = JSONObject(triggerMap)
+        }
+
+        for (component in macroBar.macroItemsPanel.components) {
             val map = LinkedHashMap<String, Any>()
             when (component) {
                 is MacroKeyItem -> {
-                    map["type"] = if (index == 0 && component.getCommand() == "ON-RELEASE") "trigger" else "key"
+                    map["type"] = "key"
                     map["command"] = component.getCommand()
-                    val keys = component.getText().split(",").map { it.trim() }
-                    if (keys.size > 1) {
-                        map["keys"] = keys
-                    } else {
-                        map["key"] = keys.first()
-                    }
+                    map["key"] = component.getText()
                     events.put(JSONObject(map))
                 }
                 is MacroMouseItem -> {
@@ -162,22 +164,30 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
 
         try {
             val json = JSONObject(getText())
-            val events = json.getJSONArray("events")
 
-            for (i in 0 until events.length()) {
-                val eventObject = events.getJSONObject(i)
-                when (eventObject.getString("type")) {
-                    "trigger", "key" -> {
-                        val keyText = eventObject.optString("key", eventObject.optJSONArray("keys")?.join(","))
-                        val command = eventObject.getString("command")
-                        macroBar.addMacroItem(MacroKeyItem(keyText, command))
-                    }
-                    "mouse" -> {
-                        val command = eventObject.getString("command")
-                        val commandType = MacroMouseItem.MouseCommandType.valueOf(command)
-                        val x = eventObject.optInt("x", 0)
-                        val y = eventObject.optInt("y", 0)
-                        macroBar.addMacroItem(MacroMouseItem(commandType, Point(x, y)))
+            json.optJSONObject("trigger")?.let { triggerObj ->
+                val keyText = triggerObj.optString("key", triggerObj.optJSONArray("keys")?.join(","))
+                val command = triggerObj.getString("command")
+                macroBar.setTriggerItem(MacroKeyItem(keyText, command))
+            }
+
+            val events = json.optJSONArray("events")
+            if (events != null) {
+                for (i in 0 until events.length()) {
+                    val eventObject = events.getJSONObject(i)
+                    when (eventObject.getString("type")) {
+                        "key" -> {
+                            val keyText = eventObject.optString("key", eventObject.optJSONArray("keys")?.join(","))
+                            val command = eventObject.getString("command")
+                            macroBar.addMacroItem(MacroKeyItem(keyText, command))
+                        }
+                        "mouse" -> {
+                            val command = eventObject.getString("command")
+                            val commandType = MacroMouseItem.MouseCommandType.valueOf(command)
+                            val x = eventObject.optInt("x", 0)
+                            val y = eventObject.optInt("y", 0)
+                            macroBar.addMacroItem(MacroMouseItem(commandType, Point(x, y)))
+                        }
                     }
                 }
             }
@@ -191,52 +201,50 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
     }
 
     private fun createDefaultMacroJson(): String {
-        return """{"events": [
-    {
-        "type": "trigger",
-        "command": "ON-RELEASE",
-        "keys": [
-            "ctrl",
-            "alt",
-            "t"
-        ]
-    },
-    {
-        "type": "key",
-        "command": "PRESS",
-        "key": "C"
-    },
-    {
-        "type": "key",
-        "command": "RELEASE",
-        "key": "Ctrl"
-    },
-    {
-        "type": "key",
-        "command": "RELEASE",
-        "key": "C"
-    },
-    {
-        "type": "key",
-        "command": "PRESS",
-        "key": "Ctrl"
-    },
-    {
-        "type": "key",
-        "command": "PRESS",
-        "key": "V"
-    },
-    {
-        "type": "key",
-        "command": "RELEASE",
-        "key": "V"
-    },
-    {
-        "type": "key",
-        "command": "RELEASE",
-        "key": "Ctrl"
-    }
-]}"""
+        return """{
+    "events": [
+        {
+            "type": "key",
+            "command": "PRESS",
+            "key": "Ctrl"
+        },
+        {
+            "type": "key",
+            "command": "PRESS",
+            "key": "C"
+        },
+        {
+            "type": "key",
+            "command": "RELEASE",
+            "key": "C"
+        },
+        {
+            "type": "key",
+            "command": "RELEASE",
+            "key": "Ctrl"
+        },
+        {
+            "type": "key",
+            "command": "PRESS",
+            "key": "Ctrl"
+        },
+        {
+            "type": "key",
+            "command": "PRESS",
+            "key": "V"
+        },
+        {
+            "type": "key",
+            "command": "RELEASE",
+            "key": "V"
+        },
+        {
+            "type": "key",
+            "command": "RELEASE",
+            "key": "Ctrl"
+        }
+    ]
+}"""
     }
 
     fun setText(text: String, file: File?) {

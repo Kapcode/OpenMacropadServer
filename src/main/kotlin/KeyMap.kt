@@ -157,18 +157,18 @@ object KeyMap {
         "F11" to NativeKeyEvent.VC_F11,
         "F12" to NativeKeyEvent.VC_F12,
 
-        // Modifiers
+        // Modifiers (Generic)
         "SHIFT" to NativeKeyEvent.VC_SHIFT,
         "CTRL" to NativeKeyEvent.VC_CONTROL,
         "ALT" to NativeKeyEvent.VC_ALT,
         "WINDOWS" to NativeKeyEvent.VC_META,
-        "META" to NativeKeyEvent.VC_META, // Often same as Windows/Command
+        "META" to NativeKeyEvent.VC_META,
 
         // Special Keys
         "SPACE" to NativeKeyEvent.VC_SPACE,
         "ENTER" to NativeKeyEvent.VC_ENTER,
         "ESCAPE" to NativeKeyEvent.VC_ESCAPE,
-        "BACK_SPACE" to NativeKeyEvent.VC_BACKSPACE,
+        "BACK_SPACE" to NativeKeyEvent.VC_BACKSPACE, // Corrected constant
         "TAB" to NativeKeyEvent.VC_TAB,
         "CAPS_LOCK" to NativeKeyEvent.VC_CAPS_LOCK,
         "NUM_LOCK" to NativeKeyEvent.VC_NUM_LOCK,
@@ -224,9 +224,9 @@ object KeyMap {
         '=' to "EQUALS",
         '-' to "MINUS",
         '[' to "OPEN_BRACKET",
-        '\\' to "BACK_SLASH", // Corrected: Use double backslash for literal backslash
+        '\\' to "BACK_SLASH",
         ']' to "CLOSE_BRACKET",
-        '\'' to "QUOTE",      // Corrected: Use escaped single quote for literal single quote
+        '\'' to "QUOTE",
         '`' to "BACK_QUOTE"
     )
 }
