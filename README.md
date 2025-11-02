@@ -8,11 +8,15 @@ A server application for the Open Macropad device, allowing users to record, man
 *   **SVG Icons**: All toolbars and buttons now use scalable SVG icons for a sharp, high-DPI-friendly interface.
 *   **Macro Management**: Create, save, edit, and delete macros through a user-friendly interface.
 *   **Live Directory Watching**: The macro manager automatically updates when you add, remove, or change macro files on disk.
-*   **Editable Tab Titles**: Double-click a tab's title to rename it for better organization.
+*   **Editable Tab Titles**: Click the edit button on a tab to rename it for better organization.
 *   **Intelligent Saving**: The application intelligently handles "Save" and "Save As" operations, using the tab title as a suggested filename and preventing accidental overwrites.
+*   **Save on Close**: The application will prompt you to save any unsaved changes before closing a tab or exiting the application.
 *   **Batch Deletion**: Easily select and delete multiple macros at once.
 *   **Always-On Macro Triggers**: Activate macros with a global hotkey, even when the application is not in focus. The trigger can be a single key or a combination of keys (e.g., Ctrl+Alt+T).
+*   **Modular Macros**: Create complex workflows by having one macro execute another using the "Run Macro" event type.
+*   **Playback Control**: Fine-tune macro execution speed with the "Set Auto Wait" event.
 *   **Dynamic Font Sizing**: The text on macro items will dynamically resize to ensure all information is visible, even for long key combinations.
+*   **Intuitive Drag-and-Drop**: Reorder macro events with a clear, visual drag-and-drop interface, complete with a highlighted drop zone and a ghost image of the item being dragged.
 
 ## UI Structure
 
@@ -32,9 +36,9 @@ The user interface is built using Java Swing and is organized into several key c
     *   **Delete**: Remove a single macro (with confirmation).
     *   **Batch Delete**: Enter a selection mode to remove multiple macros at once.
 
-*   **`TabbedUI.kt`**: A container that holds different editor views in tabs. Each tab has a close button and an editable title.
+*   **`TabbedUI.kt`**: A container that holds different editor views in tabs. Each tab has a close button and an edit button.
     *   **`MacroJsonEditorUI.kt`**: The primary tab, which provides a syntax-highlighted text editor for viewing and editing the JSON structure of a macro. It uses the `RSyntaxTextArea` library with a dark theme. It also contains the `MacroBar`.
-    *   **`MacroBar.kt`**: A visual representation of the macro's steps, displayed as a sequence of items (`MacroKeyItem`, `MacroMouseItem`). It also features a toolbar with "Record", "Undo", and "Redo" buttons, as well as a dedicated slot for the macro's trigger.
+    *   **`MacroBar.kt`**: A visual representation of the macro's steps, displayed as a sequence of items (`MacroKeyItem`, `MacroMouseItem`, `MacroRunMacroItem`, `MacroSetAutoWaitItem`). It also features a toolbar with "Record", "Undo", and "Redo" buttons, as well as a dedicated slot for the macro's trigger.
 
 *   **Toolbars**: The application features several toolbars with SVG icons for quick access to common actions:
     *   **Macro Manager Toolbar**: "Add" and "Remove" buttons for managing macros.

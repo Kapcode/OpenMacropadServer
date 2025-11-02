@@ -12,18 +12,17 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
 
     private val toolbar = ToolBarUI()
     private var dropLineX: Int? = null
-    private val dropZoneHeight = 30 // The height of the drop zone at the top
+    private val dropZoneHeight = 100 // The height of the drop zone at the top
     private var isDragInProgress = false
 
     val macroItemsPanel = object : JPanel() {
         override fun paintComponent(g: Graphics) {
-            // Set background based on drag state
-            background = if (isDragInProgress) {
-                Theme().SecondaryBackgroundColor.brighter()
-            } else {
-                Theme().SecondaryBackgroundColor
-            }
             super.paintComponent(g)
+            if (isDragInProgress) {
+                // Draw a highlight rectangle only in the drop zone
+                g.color = Theme().SecondaryBorderColor // Use a distinct color for highlight
+                g.fillRect(0, 0, width, dropZoneHeight)
+            }
 
             dropLineX?.let {
                 g.color = Color.RED
@@ -34,6 +33,7 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
     }.apply {
         layout = BoxLayout(this, BoxLayout.X_AXIS)
         isOpaque = true // Ensure the panel paints its background
+        background = Theme().SecondaryBackgroundColor // Set initial background
         // Create a physical drop zone at the top with an empty border
         border = BorderFactory.createEmptyBorder(dropZoneHeight, 0, 0, 0)
     }
