@@ -198,12 +198,12 @@ class TabbedUI(private val frame: JFrame) : JPanel(CardLayout()) {
                             when (choice) {
                                 JOptionPane.YES_OPTION -> {
                                     editor.save(getTitleForComponent(editor))
-                                    this@TabbedUI.remove(i) // Explicitly call the TabbedUI's remove method
+                                    this@TabbedUI.remove(i) // Explicitly call TabbedUI's remove
                                 }
-                                JOptionPane.NO_OPTION -> this@TabbedUI.remove(i) // Explicitly call the TabbedUI's remove method
+                                JOptionPane.NO_OPTION -> this@TabbedUI.remove(i) // Explicitly call TabbedUI's remove
                             }
                         } else {
-                            this@TabbedUI.remove(i) // Explicitly call the TabbedUI's remove method
+                            this@TabbedUI.remove(i) // Explicitly call TabbedUI's remove
                         }
                     }
                 }

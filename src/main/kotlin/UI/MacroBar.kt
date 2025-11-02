@@ -48,9 +48,9 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         layout = BorderLayout() // Changed to BorderLayout for MacroBar itself
         background = theme.SecondaryBackgroundColor
 
-        // Set aggressive minimum and preferred size for MacroBar to ensure it gets vertical space
-        minimumSize = Dimension(0, 200) // Minimum height of 200 pixels
-        preferredSize = Dimension(Integer.MAX_VALUE, 300) // Preferred height of 300 pixels, take all width
+        // Set minimum and preferred size for MacroBar to ensure it gets vertical space
+        minimumSize = Dimension(0, 100) // Minimum height of 100 pixels
+        preferredSize = Dimension(0, 150) // Preferred height of 150 pixels
 
         val newEventAction = ActionListener { 
             val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
@@ -66,12 +66,26 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             }
         }
 
+        val newTriggerAction = ActionListener { 
+            val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+            val wasEditorInFocus = focusOwner is JTextArea
+
+            val selectedComponent = tabbedUI.selectedComponent
+            if (selectedComponent is MacroJsonEditorUI) {
+                val dialog = NewEventDialog(frame, isTriggerDefault = true) // Pass isTriggerDefault = true
+                dialog.isVisible = true
+                dialog.createdEvent?.let { event ->
+                    selectedComponent.insertNewEvent(event, dialog.isTriggerEvent, wasEditorInFocus)
+                }
+            }
+        }
+
         triggerSlot.border = BorderFactory.createTitledBorder("Trigger")
         triggerSlot.transferHandler = transferHandler
         triggerSlot.preferredSize = Dimension(200, 0)
         triggerSlot.maximumSize = Dimension(200, Integer.MAX_VALUE)
         newTriggerButton = JButton("New Trigger")
-        newTriggerButton.addActionListener(newEventAction)
+        newTriggerButton.addActionListener(newTriggerAction)
         triggerSlot.add(newTriggerButton, BorderLayout.CENTER)
         add(triggerSlot, BorderLayout.WEST) // Added to WEST
 
@@ -160,7 +174,7 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
     fun clear() {
         macroItemsPanel.removeAll()
         triggerSlot.removeAll()
-        triggerSlot.add(newTriggerButton)
+        triggerSlot.add(newTriggerButton, BorderLayout.CENTER)
         newTriggerButton.isVisible = true
         revalidate()
         repaint()

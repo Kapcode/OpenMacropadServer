@@ -10,7 +10,7 @@ import java.io.File
 import javax.swing.*
 import java.util.LinkedHashMap
 
-class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event", true) {
+class NewEventDialog(parent: JFrame, private val isTriggerDefault: Boolean = false) : JDialog(parent, "Create New Macro Event", true) {
 
     private val eventTypeComboBox: JComboBox<String>
     private val cardsPanel: JPanel
@@ -91,14 +91,20 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
 
         panel.add(JLabel("Is Trigger:"))
         isTriggerCheckBox = JCheckBox()
+        isTriggerCheckBox.isSelected = isTriggerDefault // Set initial state
         panel.add(isTriggerCheckBox)
 
         allowedClientsLabel = JLabel("Allowed Clients (comma-separated):")
         allowedClientsField = JTextField()
-        allowedClientsLabel.isVisible = false
-        allowedClientsField.isVisible = false
+        allowedClientsLabel.isVisible = isTriggerDefault
+        allowedClientsField.isVisible = isTriggerDefault
         panel.add(allowedClientsLabel)
         panel.add(allowedClientsField)
+
+        // Set command to ON-RELEASE if it's a default trigger
+        if (isTriggerDefault) {
+            keyCommandComboBox.selectedItem = "ON-RELEASE"
+        }
 
         isTriggerCheckBox.addActionListener { 
             val isTrigger = isTriggerCheckBox.isSelected
@@ -157,30 +163,20 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
     }
 
     private fun validateAndCleanKeys(keyInput: String): List<String>? {
-        println("--- Validating Keys ---")
-        println("Input: '$keyInput'")
         val withSpaces = keyInput.replace(',', ' ')
         val keys = withSpaces.trim().split(Regex("""\s+""")).filter { it.isNotEmpty() }
-        println("Tokens: $keys")
 
         if (keys.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Key(s) cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE)
             return null
         }
 
-        val invalidKeys = keys.filter { 
-            val upperKey = it.uppercase()
-            println("Checking key: '$upperKey'")
-            !KeyMap.stringToNativeKeyCodeMap.containsKey(upperKey)
-        }
+        val invalidKeys = keys.filter { !KeyMap.stringToNativeKeyCodeMap.containsKey(it.uppercase()) }
         if (invalidKeys.isNotEmpty()) {
-            println("Invalid keys found: $invalidKeys")
             JOptionPane.showMessageDialog(this, "Invalid key(s) found: ${invalidKeys.joinToString()}", "Input Error", JOptionPane.ERROR_MESSAGE)
             return null
         }
 
-        println("Validation successful. Keys: $keys")
-        println("--- End Validation ---")
         return keys
     }
 
