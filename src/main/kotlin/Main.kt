@@ -23,6 +23,10 @@ fun main() {
             System.err.println("Failed to initialize LaF")
         }
 
+        // Make tooltips appear and disappear instantly
+        ToolTipManager.sharedInstance().initialDelay = 0
+        ToolTipManager.sharedInstance().dismissDelay = Integer.MAX_VALUE // Effectively instant
+
         createAndShowGUI()
     }
 }
@@ -32,6 +36,7 @@ fun createAndShowGUI() {
     val frame = JFrame("Open Macropad Server")
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
     frame.extendedState = JFrame.MAXIMIZED_BOTH // Maximize the window
+    frame.minimumSize = Dimension(200, 200) // Set minimum frame size
     frame.setLocationRelativeTo(null)
 
     val menuBar = JMenuBar()
