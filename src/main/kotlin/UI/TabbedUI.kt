@@ -46,7 +46,7 @@ class TabbedUI : JTabbedPane() {
 
             // Make children non-focusable to ensure parent (TabTitle) doesn't interfere with JTabbedPane clicks
             editableLabel.isFocusable = false
-            // Removed: textField.isFocusable = false; JTextField needs to be focusable to be editable
+            // textField.isFocusable is intentionally true when visible for editing
 
             add(editableLabel)
             add(textField)
@@ -59,8 +59,13 @@ class TabbedUI : JTabbedPane() {
             editButton.isFocusable = false
             editButton.border = BorderFactory.createEmptyBorder()
             editButton.addActionListener { startEditing() }
+
+            // Add padding between label/textfield and edit button
+            add(Box.createHorizontalStrut(10))
             add(editButton)
 
+            // Add padding between edit button and close button
+            add(Box.createHorizontalStrut(10))
             add(TabButton())
 
             // Initially show the label, hide the text field

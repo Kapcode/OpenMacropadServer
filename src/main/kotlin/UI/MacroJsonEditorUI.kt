@@ -168,6 +168,7 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         try {
             val json = JSONObject(getText())
 
+            // Handle trigger separately
             json.optJSONObject("trigger")?.let { triggerObj ->
                 val keyText = triggerObj.optString("key", triggerObj.optJSONArray("keys")?.join(","))
                 val command = triggerObj.getString("command")
