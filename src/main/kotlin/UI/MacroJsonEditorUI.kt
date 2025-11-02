@@ -153,6 +153,16 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
                     map["y"] = component.point.y
                     events.put(JSONObject(map))
                 }
+                is MacroRunMacroItem -> {
+                    map["type"] = "run_macro"
+                    map["macro_name"] = component.macroName
+                    events.put(JSONObject(map))
+                }
+                is MacroSetAutoWaitItem -> {
+                    map["type"] = "set_auto_wait"
+                    map["value"] = component.waitValue
+                    events.put(JSONObject(map))
+                }
             }
         }
         root["events"] = events
@@ -191,6 +201,14 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
                             val x = eventObject.optInt("x", 0)
                             val y = eventObject.optInt("y", 0)
                             macroBar.addMacroItem(MacroMouseItem(commandType, Point(x, y)))
+                        }
+                        "run_macro" -> {
+                            val macroName = eventObject.getString("macro_name")
+                            macroBar.addMacroItem(MacroRunMacroItem(macroName))
+                        }
+                        "set_auto_wait" -> {
+                            val waitValue = eventObject.getInt("value")
+                            macroBar.addMacroItem(MacroSetAutoWaitItem(waitValue))
                         }
                     }
                 }

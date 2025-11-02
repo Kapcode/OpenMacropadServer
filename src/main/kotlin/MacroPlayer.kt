@@ -3,12 +3,20 @@ import java.awt.MouseInfo
 import java.awt.Robot
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
+import java.io.File
 
 class MacroPlayer {
-    fun playMacro(macroJSON: String, startIndex: Int = 0) {
+
+    // Public entry point to start a macro playback
+    fun play(macroJSON: String) {
+        val robot = Robot()
+        robot.isAutoWaitForIdle = true
+        playMacroInternal(macroJSON, robot)
+    }
+
+    private fun playMacroInternal(macroJSON: String, robot: Robot, startIndex: Int = 0, callStack: MutableSet<String> = mutableSetOf()) {
         val json = JSONObject(macroJSON)
         val eventsArray = json.getJSONArray("events")
-        val robot = Robot()
 
         for (i in startIndex until eventsArray.length()) {
             val eventObject = eventsArray.getJSONObject(i)
@@ -16,23 +24,22 @@ class MacroPlayer {
                 "key" -> {
                     val keyText = eventObject.getString("key")
                     val command = eventObject.getString("command")
-                    val keyCode = KeyMap.awtKeyCodeMap[keyText]
+                    // Use uppercase for map lookup to ensure consistency
+                    val keyCode = KeyMap.awtKeyCodeMap[keyText.uppercase()]
                     if (keyCode != null) {
                         when (command) {
                             "PRESS" -> robot.keyPress(keyCode)
                             "RELEASE" -> robot.keyRelease(keyCode)
                         }
+                    } else {
+                        println("Warning: Key not found in awtKeyCodeMap: $keyText")
                     }
                 }
                 "mouse" -> {
                     val command = eventObject.getString("command")
                     when (command) {
-                        "PRESS" -> {
-                            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK)
-                        }
-                        "RELEASE" -> {
-                            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK)
-                        }
+                        "PRESS" -> robot.mousePress(InputEvent.BUTTON1_DOWN_MASK)
+                        "RELEASE" -> robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK)
                         "CLICK" -> {
                             robot.mousePress(InputEvent.BUTTON1_DOWN_MASK)
                             robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK)
@@ -54,11 +61,32 @@ class MacroPlayer {
                                 val currentX = startX + (targetX - startX) * j / steps
                                 val currentY = startY + (targetY - startY) * j / steps
                                 robot.mouseMove(currentX, currentY)
-                                robot.delay(10)
+                                robot.delay(10) // Keep delay for animation smoothness
                             }
                             robot.mouseMove(targetX, targetY)
                         }
                     }
+                }
+                "run_macro" -> {
+                    val macroName = eventObject.getString("macro_name")
+                    if (callStack.contains(macroName)) {
+                        println("Infinite loop detected: Macro '$macroName' is already in the call stack.")
+                        continue // Skip this event to prevent infinite recursion
+                    }
+
+                    val macroFolder = File(System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros")
+                    val fileToRun = File(macroFolder, macroName)
+                    if (fileToRun.exists()) {
+                        val newCallStack = callStack.toMutableSet()
+                        newCallStack.add(macroName)
+                        playMacroInternal(fileToRun.readText(), robot, 0, newCallStack)
+                    } else {
+                        println("Macro to run not found: $macroName")
+                    }
+                }
+                "set_auto_wait" -> {
+                    val waitValue = eventObject.getInt("value")
+                    robot.autoDelay = waitValue
                 }
             }
         }
@@ -66,6 +94,7 @@ class MacroPlayer {
 
     fun typeMacro(macroText: String) {
         val robot = Robot()
+        robot.isAutoWaitForIdle = true // Also apply this fix here
         val shiftChars = "~!@#$%^&*()_+{}|:\"<>?"
 
         for (char in macroText) {
@@ -98,7 +127,7 @@ class MacroPlayer {
             }
 
             if (keyText != null) {
-                val keyCode = KeyMap.awtKeyCodeMap[keyText]
+                val keyCode = KeyMap.awtKeyCodeMap[keyText.uppercase()]
                 if (keyCode != null) {
                     if (needsShift) {
                         robot.keyPress(KeyEvent.VK_SHIFT)

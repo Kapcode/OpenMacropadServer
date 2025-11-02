@@ -23,7 +23,7 @@ fun main() {
             System.err.println("Failed to initialize LaF")
         }
 
-        // Make tooltips appear instantly, and dismiss after 5 seconds
+        // Make tooltips appear and disappear instantly
         ToolTipManager.sharedInstance().initialDelay = 0
         ToolTipManager.sharedInstance().dismissDelay = 5000 // Dismiss after 5 seconds
 
@@ -67,9 +67,9 @@ fun createAndShowGUI() {
     val tabbedUI = TabbedUI()
     val macroPlayer = MacroPlayer() // Create MacroPlayer instance
     val activeMacroManager = ActiveMacroManager(macroPlayer) // Create ActiveMacroManager
-    val macroManagerUI = MacroManagerUI(tabbedUI, activeMacroManager) // Pass ActiveMacroManager
+    val macroManagerUI = MacroManagerUI(tabbedUI, activeMacroManager, macroPlayer) // Pass MacroPlayer
 
-    // Add a WindowListener to the frame to shut down JNativeHook when the application closes
+    // Add a WindowListener to handle closing the application
     frame.addWindowListener(object : WindowAdapter() {
         override fun windowClosing(e: WindowEvent?) {
             for (i in 0 until tabbedUI.tabCount) {

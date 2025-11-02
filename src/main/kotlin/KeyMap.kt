@@ -168,7 +168,7 @@ object KeyMap {
         "SPACE" to NativeKeyEvent.VC_SPACE,
         "ENTER" to NativeKeyEvent.VC_ENTER,
         "ESCAPE" to NativeKeyEvent.VC_ESCAPE,
-        "BACK_SPACE" to NativeKeyEvent.VC_BACKSPACE, // Corrected constant
+        "BACK_SPACE" to NativeKeyEvent.VC_BACKSPACE,
         "TAB" to NativeKeyEvent.VC_TAB,
         "CAPS_LOCK" to NativeKeyEvent.VC_CAPS_LOCK,
         "NUM_LOCK" to NativeKeyEvent.VC_NUM_LOCK,

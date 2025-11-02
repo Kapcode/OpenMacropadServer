@@ -141,13 +141,10 @@ class ActiveMacroManager(private val macroPlayer: MacroPlayer) : NativeKeyListen
                     val pressedCodes = pressedKeysSnapshot.keys.toSet()
 
                     val allModifiersHeld = remainingRequiredKeys.all { requiredKey ->
-                        when (requiredKey) {//todo test this, i have no idea if l shift right shift will work, try updating jnative hook?
+                        when (requiredKey) {
                             // Using integer literals as a fallback since named constants for L/R modifiers are unavailable.
-                            // 29=VC_CONTROL_L, 157=VC_CONTROL_R
                             NativeKeyEvent.VC_CONTROL -> pressedCodes.contains(29) || pressedCodes.contains(157)
-                            // 42=VC_SHIFT_L, 54=VC_SHIFT_R
                             NativeKeyEvent.VC_SHIFT -> pressedCodes.contains(42) || pressedCodes.contains(54)
-                            // 56=VC_ALT_L, 184=VC_ALT_R
                             NativeKeyEvent.VC_ALT -> pressedCodes.contains(56) || pressedCodes.contains(184)
                             else -> pressedCodes.contains(requiredKey)
                         }
@@ -156,7 +153,7 @@ class ActiveMacroManager(private val macroPlayer: MacroPlayer) : NativeKeyListen
                     if (allModifiersHeld) {
                         Thread { 
                             try {
-                                macroPlayer.playMacro(macroJson.toString(), startIndex = 0)
+                                macroPlayer.play(macroJson.toString()) // Use the new public play method
                             } catch (e: Exception) {
                                 e.printStackTrace()
                             }

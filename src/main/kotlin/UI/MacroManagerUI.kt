@@ -14,7 +14,7 @@ import java.nio.file.WatchKey
 import java.nio.file.WatchService
 import javax.swing.*
 
-class MacroManagerUI(private val tabbedUI: TabbedUI, private val activeMacroManager: ActiveMacroManager) : JPanel() {
+class MacroManagerUI(private val tabbedUI: TabbedUI, private val activeMacroManager: ActiveMacroManager, private val macroPlayer: MacroPlayer) : JPanel() {
 
     private val defaultMacroPath = System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros"
     private var macroFolder = File(defaultMacroPath)
@@ -213,8 +213,7 @@ class MacroManagerUI(private val tabbedUI: TabbedUI, private val activeMacroMana
             playButton.addActionListener { 
                 Thread { // Run on a separate thread to avoid blocking the EDT
                     try {
-                        val macroPlayer = MacroPlayer()
-                        macroPlayer.playMacro(macroFile.readText())
+                        macroPlayer.play(macroFile.readText()) // Use the shared macroPlayer instance
                     } catch (e: Exception) {
                         SwingUtilities.invokeLater { // Show error on EDT
                             JOptionPane.showMessageDialog(this, "Error playing macro: ${e.message}", "Macro Playback Error", JOptionPane.ERROR_MESSAGE)

@@ -40,4 +40,8 @@ The user interface is built using Java Swing and is organized into several key c
     *   **Macro Manager Toolbar**: "Add" and "Remove" buttons for managing macros.
     *   **Editor Toolbar**: "Save", "Save As", "Undo", and "Redo" buttons for the active editor tab.
 
+## Technical Notes
+
+*   **JNativeHook Modifier Keys**: The global hotkey functionality relies on the `JNativeHook` library. To ensure reliable detection of modifier keys (Ctrl, Alt, Shift), the `ActiveMacroManager` checks for the integer literals of the left and right modifier keys (e.g., `29` for Left Ctrl, `157` for Right Ctrl) as the named constants (e.g., `VC_CONTROL_L`) were found to be unavailable in the current environment.
+
 ![Screen-Shot-Of-Application](macropad_server.png)

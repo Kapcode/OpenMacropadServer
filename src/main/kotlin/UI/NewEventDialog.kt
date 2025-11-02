@@ -1,10 +1,12 @@
 package UI
 
+import KeyMap
 import org.json.JSONObject
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.FlowLayout
 import java.awt.GridLayout
+import java.io.File
 import javax.swing.*
 import java.util.LinkedHashMap
 
@@ -16,6 +18,8 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
 
     private val keyEventCard = "Key Event"
     private val mouseEventCard = "Mouse Event"
+    private val runMacroCard = "Run Macro"
+    private val setAutoWaitCard = "Set Auto Wait"
 
     private lateinit var keyTextField: JTextField
     private lateinit var keyCommandComboBox: JComboBox<String>
@@ -27,6 +31,9 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
     private lateinit var xCoordinateField: JTextField
     private lateinit var yCoordinateField: JTextField
 
+    private lateinit var macroNameComboBox: JComboBox<String>
+    private lateinit var autoWaitField: JTextField
+
     var createdEvent: JSONObject? = null
         private set
     var isTriggerEvent: Boolean = false
@@ -37,13 +44,15 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
 
         val topPanel = JPanel(FlowLayout(FlowLayout.LEFT))
         topPanel.add(JLabel("Event Type:"))
-        eventTypeComboBox = JComboBox(arrayOf(keyEventCard, mouseEventCard))
+        eventTypeComboBox = JComboBox(arrayOf(keyEventCard, mouseEventCard, runMacroCard, setAutoWaitCard))
         topPanel.add(eventTypeComboBox)
         add(topPanel, BorderLayout.NORTH)
 
         cardsPanel = JPanel(cardLayout)
         createKeyEventPanel()
         createMouseEventPanel()
+        createRunMacroPanel()
+        createSetAutoWaitPanel()
         add(cardsPanel, BorderLayout.CENTER)
 
         eventTypeComboBox.addActionListener { 
@@ -72,7 +81,7 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
         val panel = JPanel(GridLayout(0, 2, 5, 5))
         panel.border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
 
-        panel.add(JLabel("Key(s):"))
+        panel.add(JLabel("Key(s) (spaces or commas):"))
         keyTextField = JTextField()
         panel.add(keyTextField)
 
@@ -95,7 +104,6 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
             val isTrigger = isTriggerCheckBox.isSelected
             allowedClientsLabel.isVisible = isTrigger
             allowedClientsField.isVisible = isTrigger
-            // Only ON-RELEASE is a valid trigger command
             keyCommandComboBox.selectedItem = if (isTrigger) "ON-RELEASE" else "PRESS"
             pack() // Resize dialog to fit new fields
         }
@@ -122,6 +130,60 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
         cardsPanel.add(panel, mouseEventCard)
     }
 
+    private fun createRunMacroPanel() {
+        val panel = JPanel(GridLayout(0, 2, 5, 5))
+        panel.border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+
+        panel.add(JLabel("Macro Name:"))
+        macroNameComboBox = JComboBox()
+        val macroFolder = File(System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros")
+        macroFolder.listFiles { _, name -> name.endsWith(".json") }?.forEach { file ->
+            macroNameComboBox.addItem(file.name)
+        }
+        panel.add(macroNameComboBox)
+
+        cardsPanel.add(panel, runMacroCard)
+    }
+
+    private fun createSetAutoWaitPanel() {
+        val panel = JPanel(GridLayout(0, 2, 5, 5))
+        panel.border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+
+        panel.add(JLabel("Wait Value (ms):"))
+        autoWaitField = JTextField("50")
+        panel.add(autoWaitField)
+
+        cardsPanel.add(panel, setAutoWaitCard)
+    }
+
+    private fun validateAndCleanKeys(keyInput: String): List<String>? {
+        println("--- Validating Keys ---")
+        println("Input: '$keyInput'")
+        val withSpaces = keyInput.replace(',', ' ')
+        val keys = withSpaces.trim().split(Regex("""\s+""")).filter { it.isNotEmpty() }
+        println("Tokens: $keys")
+
+        if (keys.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Key(s) cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE)
+            return null
+        }
+
+        val invalidKeys = keys.filter { 
+            val upperKey = it.uppercase()
+            println("Checking key: '$upperKey'")
+            !KeyMap.stringToNativeKeyCodeMap.containsKey(upperKey)
+        }
+        if (invalidKeys.isNotEmpty()) {
+            println("Invalid keys found: $invalidKeys")
+            JOptionPane.showMessageDialog(this, "Invalid key(s) found: ${invalidKeys.joinToString()}", "Input Error", JOptionPane.ERROR_MESSAGE)
+            return null
+        }
+
+        println("Validation successful. Keys: $keys")
+        println("--- End Validation ---")
+        return keys
+    }
+
     private fun createEvent(): Boolean {
         val selectedType = eventTypeComboBox.selectedItem as String
         val map = LinkedHashMap<String, Any>() // Use LinkedHashMap to preserve order
@@ -129,15 +191,13 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
 
         return when (selectedType) {
             keyEventCard -> {
-                val keyInput = keyTextField.text.trim()
-                if (keyInput.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Key(s) cannot be empty.", "Input Error", JOptionPane.ERROR_MESSAGE)
-                    return false
+                val keys = validateAndCleanKeys(keyTextField.text)
+                if (keys == null) {
+                    return false // Validation failed
                 }
 
                 if (isTriggerEvent) {
                     map["command"] = "ON-RELEASE"
-                    val keys = keyInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                     map["keys"] = keys
 
                     val clients = allowedClientsField.text.split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -147,11 +207,11 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
                 } else {
                     map["type"] = "key"
                     map["command"] = keyCommandComboBox.selectedItem as String
-                    if (keyInput.contains(",")) {
+                    if (keys.size > 1) {
                         JOptionPane.showMessageDialog(this, "Only triggers can have multiple keys.", "Input Error", JOptionPane.ERROR_MESSAGE)
                         return false
                     }
-                    map["key"] = keyInput
+                    map["key"] = keys.first()
                 }
                 createdEvent = JSONObject(map)
                 true
@@ -168,6 +228,29 @@ class NewEventDialog(parent: JFrame) : JDialog(parent, "Create New Macro Event",
                     true
                 } catch (e: NumberFormatException) {
                     JOptionPane.showMessageDialog(this, "Coordinates must be valid integers.", "Input Error", JOptionPane.ERROR_MESSAGE)
+                    false
+                }
+            }
+            runMacroCard -> {
+                val selectedMacro = macroNameComboBox.selectedItem as? String
+                if (selectedMacro == null) {
+                    JOptionPane.showMessageDialog(this, "No macro selected.", "Input Error", JOptionPane.ERROR_MESSAGE)
+                    return false
+                }
+                map["type"] = "run_macro"
+                map["macro_name"] = selectedMacro
+                createdEvent = JSONObject(map)
+                true
+            }
+            setAutoWaitCard -> {
+                try {
+                    val waitValue = autoWaitField.text.toInt()
+                    map["type"] = "set_auto_wait"
+                    map["value"] = waitValue
+                    createdEvent = JSONObject(map)
+                    true
+                } catch (e: NumberFormatException) {
+                    JOptionPane.showMessageDialog(this, "Wait value must be a valid integer.", "Input Error", JOptionPane.ERROR_MESSAGE)
                     false
                 }
             }
