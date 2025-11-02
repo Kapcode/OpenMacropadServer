@@ -1,36 +1,114 @@
 package UI
 
+import java.awt.CardLayout
 import java.awt.Component
 import java.awt.FlowLayout
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
 import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
+import java.io.File
 
-class TabbedUI : JTabbedPane() {
+class TabbedUI(private val frame: JFrame) : JPanel(CardLayout()) {
+
+    private val tabbedPane = JTabbedPane()
+    private val newDocumentButton: JButton
+    private val cardLayout = layout as CardLayout
+
+    private val tabsCard = "Tabs"
+    private val newButtonCard = "NewButton"
+
+    init {
+        // Create the "New Document" button panel
+        val newButtonPanel = JPanel(GridBagLayout())
+        newDocumentButton = JButton("New Document")
+        newDocumentButton.addActionListener { 
+            val macroFolder = File(System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros")
+            var newMacroFile: File
+            var i = 1
+            do {
+                newMacroFile = File(macroFolder, "New Macro $i.json")
+                i++
+            } while (newMacroFile.exists())
+
+            newMacroFile.createNewFile()
+            newMacroFile.writeText("{\n    \"events\": []\n}")
+
+            val newEditor = MacroJsonEditorUI(frame, this) // Pass 'this' (TabbedUI instance)
+            newEditor.setText(newMacroFile.readText(), newMacroFile)
+            addTab(newMacroFile.name, newEditor)
+            setSelectedComponent(newEditor)
+        }
+        newButtonPanel.add(newDocumentButton, GridBagConstraints())
+
+        // Add cards to the main panel
+        add(tabbedPane, tabsCard)
+        add(newButtonPanel, newButtonCard)
+
+        // Add a change listener to show/hide the button
+        tabbedPane.addChangeListener { 
+            checkShowNewDocumentButton()
+        }
+
+        // Initial check
+        checkShowNewDocumentButton()
+    }
+
+    private fun checkShowNewDocumentButton() {
+        if (tabbedPane.tabCount == 0) {
+            cardLayout.show(this, newButtonCard)
+        } else {
+            cardLayout.show(this, tabsCard)
+        }
+    }
+
+    fun addTab(title: String, component: Component) {
+        tabbedPane.addTab(title, component)
+        val index = tabbedPane.indexOfComponent(component)
+        tabbedPane.setTabComponentAt(index, TabTitle(title))
+        checkShowNewDocumentButton()
+    }
+
+    override fun remove(index: Int) {
+        tabbedPane.remove(index)
+        checkShowNewDocumentButton()
+    }
 
     override fun add(title: String, component: Component): Component {
-        super.add(title, component)
-        val index = indexOfComponent(component)
-        setTabComponentAt(index, TabTitle(title))
-        return component // Return the added component
+        addTab(title, component)
+        return component
+    }
+
+    val tabCount: Int
+        get() = tabbedPane.tabCount
+
+    val selectedComponent: Component?
+        get() = tabbedPane.selectedComponent
+
+    fun getComponentAt(index: Int): Component {
+        return tabbedPane.getComponentAt(index)
+    }
+
+    fun setSelectedComponent(component: Component) {
+        tabbedPane.selectedComponent = component
     }
 
     fun setTitleForComponent(component: Component, title: String) {
-        val index = indexOfComponent(component)
+        val index = tabbedPane.indexOfComponent(component)
         if (index != -1) {
-            val tabTitle = getTabComponentAt(index) as? TabTitle
+            val tabTitle = tabbedPane.getTabComponentAt(index) as? TabTitle
             tabTitle?.editableLabel?.text = title
-            // Also update the actual tab title in JTabbedPane
-            setTitleAt(index, title)
+            tabbedPane.setTitleAt(index, title)
         }
     }
 
     fun getTitleForComponent(component: Component): String? {
-        val index = indexOfComponent(component)
+        val index = tabbedPane.indexOfComponent(component)
         return if (index != -1) {
-            (getTabComponentAt(index) as? TabTitle)?.editableLabel?.text
+            (tabbedPane.getTabComponentAt(index) as? TabTitle)?.editableLabel?.text
         } else {
             null
         }
@@ -44,14 +122,11 @@ class TabbedUI : JTabbedPane() {
             isOpaque = false
             isFocusable = false // Make the TabTitle JPanel itself non-focusable
 
-            // Make children non-focusable to ensure parent (TabTitle) doesn't interfere with JTabbedPane clicks
             editableLabel.isFocusable = false
-            // textField.isFocusable is intentionally true when visible for editing
 
             add(editableLabel)
             add(textField)
 
-            // Add the new Edit button
             val editIcon = SvgIconRenderer.getIcon("/pencil-icon.svg", 12, 12)
             val editButton = if (editIcon != null) JButton(editIcon) else JButton("Edit")
             editButton.toolTipText = "Edit Tab Title"
@@ -60,15 +135,12 @@ class TabbedUI : JTabbedPane() {
             editButton.border = BorderFactory.createEmptyBorder()
             editButton.addActionListener { startEditing() }
 
-            // Add padding between label/textfield and edit button
             add(Box.createHorizontalStrut(10))
             add(editButton)
 
-            // Add padding between edit button and close button
             add(Box.createHorizontalStrut(10))
             add(TabButton())
 
-            // Initially show the label, hide the text field
             editableLabel.isVisible = true
             textField.isVisible = false
 
@@ -88,7 +160,7 @@ class TabbedUI : JTabbedPane() {
             revalidate()
             repaint()
             textField.requestFocusInWindow()
-            textField.selectAll() // Highlight the text
+            textField.selectAll()
         }
 
         private fun finishEditing() {
@@ -99,10 +171,9 @@ class TabbedUI : JTabbedPane() {
             revalidate()
             repaint()
 
-            // Update the actual tab title in the JTabbedPane
-            val tabIndex = this@TabbedUI.indexOfTabComponent(this)
+            val tabIndex = tabbedPane.indexOfTabComponent(this)
             if (tabIndex != -1) {
-                this@TabbedUI.setTitleAt(tabIndex, newTitle)
+                tabbedPane.setTitleAt(tabIndex, newTitle)
             }
         }
     }
@@ -114,27 +185,25 @@ class TabbedUI : JTabbedPane() {
             border = BorderFactory.createEmptyBorder()
             addMouseListener(object : MouseAdapter() {
                 override fun mouseClicked(e: MouseEvent) {
-                    val tab = this@TabbedUI
-                    val i = tab.indexOfTabComponent(this@TabButton.parent as Component)
+                    val i = tabbedPane.indexOfTabComponent(this@TabButton.parent as Component)
                     if (i != -1) {
-                        val editor = tab.getComponentAt(i) as? MacroJsonEditorUI
+                        val editor = tabbedPane.getComponentAt(i) as? MacroJsonEditorUI
                         if (editor?.hasUnsavedChanges == true) {
                             val choice = JOptionPane.showConfirmDialog(
-                                tab,
-                                "Save changes to ${tab.getTitleForComponent(editor)}?",
+                                this@TabbedUI,
+                                "Save changes to ${getTitleForComponent(editor)}?",
                                 "Unsaved Changes",
                                 JOptionPane.YES_NO_CANCEL_OPTION
                             )
                             when (choice) {
                                 JOptionPane.YES_OPTION -> {
-                                    editor.save(tab.getTitleForComponent(editor))
-                                    tab.remove(i)
+                                    editor.save(getTitleForComponent(editor))
+                                    this@TabbedUI.remove(i) // Explicitly call the TabbedUI's remove method
                                 }
-                                JOptionPane.NO_OPTION -> tab.remove(i)
-                                // JOptionPane.CANCEL_OPTION or closing the dialog does nothing
+                                JOptionPane.NO_OPTION -> this@TabbedUI.remove(i) // Explicitly call the TabbedUI's remove method
                             }
                         } else {
-                            tab.remove(i)
+                            this@TabbedUI.remove(i) // Explicitly call the TabbedUI's remove method
                         }
                     }
                 }

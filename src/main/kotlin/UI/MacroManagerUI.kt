@@ -83,8 +83,8 @@ class MacroManagerUI(private val tabbedUI: TabbedUI, private val activeMacroMana
                 activeMacroManager.removeActiveMacro(macroFile)
 
                 for (i in 0 until tabbedUI.tabCount) {
-                    val component = tabbedUI.getComponentAt(i)
-                    if (component is MacroJsonEditorUI && component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
+                    val component = tabbedUI.getComponentAt(i) as? MacroJsonEditorUI
+                    if (component != null && component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
                         tabbedUI.remove(i)
                         break
                     }
@@ -229,9 +229,9 @@ class MacroManagerUI(private val tabbedUI: TabbedUI, private val activeMacroMana
             styleButton(editButton, theme.ThirdButtonColor)
             editButton.addActionListener { 
                 val frame = SwingUtilities.getWindowAncestor(this@MacroManagerUI) as? JFrame ?: return@addActionListener
-                val newEditor = MacroJsonEditorUI(frame)
+                val newEditor = MacroJsonEditorUI(frame, tabbedUI) // Pass tabbedUI
                 newEditor.setText(macroFile.readText(), macroFile)
-                tabbedUI.add(macroFile.name, newEditor)
+                tabbedUI.addTab(macroFile.name, newEditor)
                 tabbedUI.setSelectedComponent(newEditor)
             }
 
@@ -246,8 +246,8 @@ class MacroManagerUI(private val tabbedUI: TabbedUI, private val activeMacroMana
                     activeMacroManager.removeActiveMacro(macroFile)
 
                     for (i in 0 until tabbedUI.tabCount) {
-                        val component = tabbedUI.getComponentAt(i)
-                        if (component is MacroJsonEditorUI && component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
+                        val component = tabbedUI.getComponentAt(i) as? MacroJsonEditorUI
+                        if (component != null && component.getCurrentFile()?.absolutePath == macroFile.absolutePath) {
                             tabbedUI.remove(i)
                             break
                         }

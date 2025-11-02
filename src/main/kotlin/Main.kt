@@ -64,7 +64,7 @@ fun createAndShowGUI() {
     val serverStatusUI = ServerStatusUI()
     val consoleUI = ConsoleUI(wifiServer)
     val connectedDevicesUI = ConnectedDevicesUI()
-    val tabbedUI = TabbedUI()
+    val tabbedUI = TabbedUI(frame) // Pass frame to TabbedUI
     val macroPlayer = MacroPlayer() // Create MacroPlayer instance
     val activeMacroManager = ActiveMacroManager(macroPlayer) // Create ActiveMacroManager
     val macroManagerUI = MacroManagerUI(tabbedUI, activeMacroManager, macroPlayer) // Pass MacroPlayer
@@ -111,9 +111,9 @@ fun createAndShowGUI() {
             newMacroFile.createNewFile()
             newMacroFile.writeText("{\n    \"events\": []\n}")
 
-            val newEditor = MacroJsonEditorUI(frame)
+            val newEditor = MacroJsonEditorUI(frame, tabbedUI) // Pass tabbedUI
             newEditor.setText(newMacroFile.readText(), newMacroFile)
-            tabbedUI.add(newMacroFile.name, newEditor)
+            tabbedUI.addTab(newMacroFile.name, newEditor)
             tabbedUI.setSelectedComponent(newEditor)
         }
     }
@@ -236,28 +236,7 @@ fun createAndShowGUI() {
     settingsItem.addActionListener { SettingsUI(frame).isVisible = true }
     macroSettingsItem.addActionListener { MacroSettingsDialog(frame).isVisible = true }
 
-    wifiServer.setConnectionListener(object : ConnectionListener {
-        override fun onClientConnected(clientId: String) {
-            consoleUI.appendMessage("Client connected: $clientId")
-            connectedDevicesUI.addDevice(clientId)
-        }
-
-        override fun onClientDisconnected(clientId: String) {
-            consoleUI.appendMessage("Client disconnected: $clientId")
-            connectedDevicesUI.removeDevice(clientId)
-        }
-
-        override fun onDataReceived(clientId: String, data: ByteArray) {
-            consoleUI.appendMessage("Received from $clientId: ${data.toString(Charsets.UTF_8)}")
-        }
-
-        override fun onError(error: String) {
-            consoleUI.appendMessage("Server error: $error")
-            serverStatusUI.updateStatus(false, 9999)
-        }
-    })
-
-    tabbedUI.add("Macro Editor", MacroJsonEditorUI(frame))
+    tabbedUI.addTab("Macro Editor", MacroJsonEditorUI(frame, tabbedUI)) // Pass tabbedUI
     frame.isVisible = true
 
     wifiServer.startListening()

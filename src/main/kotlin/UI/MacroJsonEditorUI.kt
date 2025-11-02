@@ -8,8 +8,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.awt.BorderLayout
 import java.awt.Point
-import java.awt.event.FocusAdapter
-import java.awt.event.FocusEvent
 import java.beans.PropertyChangeEvent
 import java.beans.PropertyChangeListener
 import java.io.File
@@ -19,7 +17,7 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import java.util.LinkedHashMap
 
-class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeListener {
+class MacroJsonEditorUI(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPanel(), PropertyChangeListener {
 
     private val textArea: RSyntaxTextArea
     private lateinit var macroBar: MacroBar
@@ -31,6 +29,7 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
 
     init {
         layout = BorderLayout()
+        isOpaque = true // Ensure it paints its background
 
         textArea = RSyntaxTextArea(20, 60)
         textArea.syntaxEditingStyle = SyntaxConstants.SYNTAX_STYLE_JSON
@@ -44,24 +43,17 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         }
 
         val sp = RTextScrollPane(textArea)
-        add(sp, BorderLayout.CENTER)
+        
+        // Create MacroBar directly
+        macroBar = MacroBar(frame, tabbedUI)
+        macroBar.addPropertyChangeListener(this@MacroJsonEditorUI)
 
-        addPropertyChangeListener("ancestor") { e ->
-            if (e.newValue != null && !::macroBar.isInitialized) {
-                val tabbedPane = SwingUtilities.getAncestorOfClass(JTabbedPane::class.java, this) as? TabbedUI
-                if (tabbedPane != null) {
-                    macroBar = MacroBar(frame, tabbedPane)
-                    macroBar.addPropertyChangeListener(this@MacroJsonEditorUI)
-                    val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, sp, macroBar)
-                    splitPane.resizeWeight = 0.7
-                    remove(sp)
-                    add(splitPane, BorderLayout.CENTER)
-                    revalidate()
-                    repaint()
-                    updateMacroBarFromText()
-                }
-            }
-        }
+        // Use a JPanel with BorderLayout to combine the editor and macroBar
+        val editorAndMacroBarPanel = JPanel(BorderLayout())
+        editorAndMacroBarPanel.add(sp, BorderLayout.CENTER)
+        editorAndMacroBarPanel.add(macroBar, BorderLayout.SOUTH)
+
+        add(editorAndMacroBarPanel, BorderLayout.CENTER)
 
         textArea.document.addDocumentListener(object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent?) { hasUnsavedChanges = true; if (!isUpdatingFromBar) updateMacroBarFromText() }

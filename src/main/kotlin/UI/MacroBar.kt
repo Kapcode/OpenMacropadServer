@@ -7,13 +7,15 @@ import java.awt.datatransfer.UnsupportedFlavorException
 import java.beans.PropertyChangeListener
 import javax.swing.*
 import java.awt.image.BufferedImage
+import java.awt.event.ActionListener
 
 class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPanel() {
 
     private val toolbar = ToolBarUI()
     private var dropLineX: Int? = null
-    private val dropZoneHeight = 100 // The height of the drop zone at the top
+    private val dropZoneHeight = 30 // The height of the drop zone at the top
     private var isDragInProgress = false
+    private val newTriggerButton: JButton
 
     val macroItemsPanel = object : JPanel() {
         override fun paintComponent(g: Graphics) {
@@ -43,32 +45,41 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
 
     init {
         val theme = Theme()
-        layout = BoxLayout(this, BoxLayout.X_AXIS)
+        layout = BorderLayout() // Changed to BorderLayout for MacroBar itself
         background = theme.SecondaryBackgroundColor
+
+        // Set aggressive minimum and preferred size for MacroBar to ensure it gets vertical space
+        minimumSize = Dimension(0, 200) // Minimum height of 200 pixels
+        preferredSize = Dimension(Integer.MAX_VALUE, 300) // Preferred height of 300 pixels, take all width
+
+        val newEventAction = ActionListener { 
+            val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+            val wasEditorInFocus = focusOwner is JTextArea
+
+            val selectedComponent = tabbedUI.selectedComponent
+            if (selectedComponent is MacroJsonEditorUI) {
+                val dialog = NewEventDialog(frame)
+                dialog.isVisible = true
+                dialog.createdEvent?.let { event ->
+                    selectedComponent.insertNewEvent(event, dialog.isTriggerEvent, wasEditorInFocus)
+                }
+            }
+        }
 
         triggerSlot.border = BorderFactory.createTitledBorder("Trigger")
         triggerSlot.transferHandler = transferHandler
         triggerSlot.preferredSize = Dimension(200, 0)
         triggerSlot.maximumSize = Dimension(200, Integer.MAX_VALUE)
-        add(triggerSlot)
+        newTriggerButton = JButton("New Trigger")
+        newTriggerButton.addActionListener(newEventAction)
+        triggerSlot.add(newTriggerButton, BorderLayout.CENTER)
+        add(triggerSlot, BorderLayout.WEST) // Added to WEST
 
         val itemsPanelWithToolbar = JPanel(BorderLayout())
         
         val newEventIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
         if (newEventIcon != null) {
-            toolbar.addButton(newEventIcon, "New Event") { 
-                val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
-                val wasEditorInFocus = focusOwner is JTextArea
-
-                val selectedComponent = tabbedUI.selectedComponent
-                if (selectedComponent is MacroJsonEditorUI) {
-                    val dialog = NewEventDialog(frame)
-                    dialog.isVisible = true
-                    dialog.createdEvent?.let { event ->
-                        selectedComponent.insertNewEvent(event, dialog.isTriggerEvent, wasEditorInFocus)
-                    }
-                }
-            }
+            toolbar.addButton(newEventIcon, "New Event", newEventAction)
         }
 
         val recordIcon = SvgIconRenderer.getIcon("/green-circle-shape-icon.svg", 24, 24)
@@ -109,8 +120,17 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             border = null
             horizontalScrollBar.unitIncrement = 20
         }
-        itemsPanelWithToolbar.add(scrollPane, BorderLayout.CENTER)
-        add(itemsPanelWithToolbar)
+        
+        val macroItemsContainer = JPanel(BorderLayout())
+        macroItemsContainer.add(scrollPane, BorderLayout.CENTER)
+
+        val addMacroItemButton = JButton(SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24))
+        addMacroItemButton.toolTipText = "Add New Macro Event"
+        addMacroItemButton.addActionListener(newEventAction)
+        macroItemsContainer.add(addMacroItemButton, BorderLayout.EAST)
+
+        itemsPanelWithToolbar.add(macroItemsContainer, BorderLayout.CENTER)
+        add(itemsPanelWithToolbar, BorderLayout.CENTER) // Added to CENTER
 
         macroItemsPanel.transferHandler = transferHandler
     }
@@ -128,17 +148,20 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         triggerSlot.removeAll()
         item.transferHandler = transferHandler
         triggerSlot.add(item, BorderLayout.CENTER)
+        newTriggerButton.isVisible = false
         triggerSlot.revalidate()
         triggerSlot.repaint()
     }
 
     fun getTriggerItem(): MacroItem? {
-        return if (triggerSlot.componentCount > 0) triggerSlot.getComponent(0) as? MacroItem else null
+        return if (triggerSlot.componentCount > 0 && triggerSlot.getComponent(0) is MacroItem) triggerSlot.getComponent(0) as? MacroItem else null
     }
 
     fun clear() {
         macroItemsPanel.removeAll()
         triggerSlot.removeAll()
+        triggerSlot.add(newTriggerButton)
+        newTriggerButton.isVisible = true
         revalidate()
         repaint()
     }
