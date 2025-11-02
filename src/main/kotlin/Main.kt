@@ -204,10 +204,10 @@ fun createAndShowGUI() {
     tabbedUIPanel.add(tabbedUI, BorderLayout.CENTER)
 
     val centerSplit = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, macroManagerPanel, tabbedUIPanel)
-    centerSplit.resizeWeight = 0.3
+    centerSplit.resizeWeight = 0.0 // Give macroManagerPanel its preferred width
 
     val bottomHorizontalSplit = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, consoleAndDevicesSplit, centerSplit)
-    bottomHorizontalSplit.resizeWeight = 0.3
+    bottomHorizontalSplit.resizeWeight = 0.15 // Give left side 15%
 
     val mainSplitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, serverStatusUI, bottomHorizontalSplit)
     mainSplitPane.resizeWeight = 0.1
