@@ -7,8 +7,8 @@ import javax.swing.TransferHandler
 
 abstract class DraggableMacroItem : MacroItem() {
 
-    // Store the MouseEvent that initiated the drag
-    @Transient // Mark as transient as MouseEvent is not serializable
+    // Mark as transient to avoid serialization issues during drag and drop
+    @Transient
     var dragStartEvent: MouseEvent? = null
 
     init {

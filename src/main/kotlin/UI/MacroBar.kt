@@ -1,28 +1,49 @@
 package UI
 
-import java.awt.BorderLayout
-import java.awt.Dimension
-import java.awt.KeyboardFocusManager
+import java.awt.* 
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
 import java.beans.PropertyChangeListener
 import javax.swing.*
-import java.awt.Point
-import java.awt.Image
 import java.awt.image.BufferedImage
-import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent
 
 class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPanel() {
 
     private val toolbar = ToolBarUI()
-    val macroItemsPanel = JPanel().apply { layout = BoxLayout(this, BoxLayout.X_AXIS) }
+    private var dropLineX: Int? = null
+    private val dropZoneHeight = 30 // The height of the drop zone at the top
+    private var isDragInProgress = false
+
+    val macroItemsPanel = object : JPanel() {
+        override fun paintComponent(g: Graphics) {
+            // Set background based on drag state
+            background = if (isDragInProgress) {
+                Theme().SecondaryBackgroundColor.brighter()
+            } else {
+                Theme().SecondaryBackgroundColor
+            }
+            super.paintComponent(g)
+
+            dropLineX?.let {
+                g.color = Color.RED
+                // Draw the line only within the top drop zone area
+                g.fillRect(it - 1, 0, 2, dropZoneHeight)
+            }
+        }
+    }.apply {
+        layout = BoxLayout(this, BoxLayout.X_AXIS)
+        isOpaque = true // Ensure the panel paints its background
+        // Create a physical drop zone at the top with an empty border
+        border = BorderFactory.createEmptyBorder(dropZoneHeight, 0, 0, 0)
+    }
+
     private val triggerSlot = JPanel(BorderLayout())
     private val transferHandler = MacroItemTransferHandler()
 
     init {
         val theme = Theme()
-        layout = BoxLayout(this, BoxLayout.X_AXIS) // Use BoxLayout for the main panel
+        layout = BoxLayout(this, BoxLayout.X_AXIS)
         background = theme.SecondaryBackgroundColor
 
         triggerSlot.border = BorderFactory.createTitledBorder("Trigger")
@@ -63,11 +84,9 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             if (isRecording) {
                 if (stopIcon != null) recordButton.setIcon(stopIcon)
                 recordButton.setToolTipText("Stop Recording")
-                println("Recording Started") // Placeholder
             } else {
                 if (recordIcon != null) recordButton.setIcon(recordIcon)
                 recordButton.setToolTipText("Start Recording")
-                println("Recording Stopped") // Placeholder
             }
         }
         toolbar.add(recordButton)
@@ -88,13 +107,12 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
             verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_NEVER
             border = null
-            // Increase the horizontal scroll speed
             horizontalScrollBar.unitIncrement = 20
         }
         itemsPanelWithToolbar.add(scrollPane, BorderLayout.CENTER)
         add(itemsPanelWithToolbar)
 
-        repaint()
+        macroItemsPanel.transferHandler = transferHandler
     }
 
     override fun addPropertyChangeListener(listener: PropertyChangeListener) {
@@ -131,44 +149,78 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
 
     inner class MacroItemTransferHandler : TransferHandler() {
 
-        private val macroItemIndexFlavor = DataFlavor(Integer::class.java, "Macro Item Index")
-        private var draggedComponent: MacroItem? = null // Store the component being dragged
+        private val indexFlavor = DataFlavor(Int::class.java, "java/lang/Integer")
+        private var sourceComponent: JComponent? = null
+
+        private fun getTargetIndex(support: TransferSupport): Int {
+            val dropPoint = support.dropLocation.dropPoint
+            var targetIndex = 0
+            for (i in 0 until macroItemsPanel.componentCount) {
+                val component = macroItemsPanel.getComponent(i)
+                if (dropPoint.x > component.x + component.width / 2) {
+                    targetIndex = i + 1
+                }
+            }
+            return targetIndex
+        }
 
         override fun getSourceActions(c: JComponent): Int {
-            return COPY_OR_MOVE
+            sourceComponent = c
+            isDragInProgress = true
+            macroItemsPanel.repaint()
+            return MOVE
         }
 
         override fun createTransferable(c: JComponent): Transferable? {
-            if (c is MacroItem) {
-                draggedComponent = c // Store the component
-                val index = macroItemsPanel.components.indexOf(c)
-                if (index != -1) {
-                    return object : Transferable {
-                        override fun getTransferDataFlavors(): Array<DataFlavor> = arrayOf(macroItemIndexFlavor)
-                        override fun isDataFlavorSupported(flavor: DataFlavor?): Boolean = flavor == macroItemIndexFlavor
-                        override fun getTransferData(flavor: DataFlavor?): Any = if (isDataFlavorSupported(flavor)) index else throw UnsupportedFlavorException(flavor)
-                    }
+            val index = macroItemsPanel.components.indexOf(c)
+            if (index != -1) {
+                return object : Transferable {
+                    override fun getTransferDataFlavors(): Array<DataFlavor> = arrayOf(indexFlavor)
+                    override fun isDataFlavorSupported(flavor: DataFlavor): Boolean = flavor.equals(indexFlavor)
+                    override fun getTransferData(flavor: DataFlavor): Any = index
                 }
             }
             return null
         }
 
         override fun getDragImage(): Image? {
-            val c = draggedComponent ?: return null
+            val c = sourceComponent ?: return null
             val image = BufferedImage(c.width, c.height, BufferedImage.TYPE_INT_ARGB)
-            val g = image.createGraphics()
-            c.paint(g)
-            g.dispose()
+            val g2 = image.createGraphics()
+            c.paint(g2)
+            g2.dispose()
             return image
         }
 
-        override fun getDragImageOffset(): Point? {
-            val c = draggedComponent as? DraggableMacroItem ?: return null
-            return c.dragStartEvent?.point
-        }
-
         override fun canImport(support: TransferSupport): Boolean {
-            return support.isDataFlavorSupported(macroItemIndexFlavor)
+            if (!support.isDrop || !support.isDataFlavorSupported(indexFlavor)) {
+                return false
+            }
+
+            val dropPoint = support.dropLocation.dropPoint
+
+            // Check if the drop is in the valid drop zone (the top border area)
+            if (dropPoint.y > dropZoneHeight) {
+                dropLineX = null
+                macroItemsPanel.repaint()
+                return false // It's a no-drop zone
+            }
+
+            val targetIndex = getTargetIndex(support)
+            
+            if (targetIndex < macroItemsPanel.componentCount) {
+                dropLineX = macroItemsPanel.getComponent(targetIndex).x
+            } else {
+                if (macroItemsPanel.componentCount > 0) {
+                    val lastComp = macroItemsPanel.getComponent(macroItemsPanel.componentCount - 1)
+                    dropLineX = lastComp.x + lastComp.width
+                } else {
+                    dropLineX = 0 // If panel is empty
+                }
+            }
+
+            macroItemsPanel.repaint()
+            return true
         }
 
         override fun importData(support: TransferSupport): Boolean {
@@ -176,58 +228,34 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
                 return false
             }
 
-            val transferable = support.transferable
             val sourceIndex = try {
-                transferable.getTransferData(macroItemIndexFlavor) as Int
+                support.transferable.getTransferData(indexFlavor) as Int
             } catch (e: Exception) {
-                e.printStackTrace()
                 return false
             }
 
-            val draggedItem = macroItemsPanel.getComponent(sourceIndex) as? MacroItem ?: return false
+            val comp = macroItemsPanel.getComponent(sourceIndex) as? DraggableMacroItem ?: return false
+            val targetIndex = getTargetIndex(support)
 
-            if (support.component == triggerSlot) {
-                val newTrigger = MacroKeyItem(draggedItem.getText(), draggedItem.getCommand())
-                setTriggerItem(newTrigger)
-                notifyItemsReordered()
-                return true
+            if (sourceIndex == targetIndex) {
+                return false // No change
             }
 
-            if (support.component == macroItemsPanel) {
-                val dropPoint = support.dropLocation.dropPoint
-                var targetIndex = macroItemsPanel.componentCount
+            macroItemsPanel.remove(comp)
+            val newIndex = if (sourceIndex < targetIndex) targetIndex - 1 else targetIndex
+            macroItemsPanel.add(comp, newIndex)
 
-                for (i in 0 until macroItemsPanel.componentCount) {
-                    val component = macroItemsPanel.getComponent(i)
-                    if (dropPoint.x < component.x + component.width / 2) {
-                        targetIndex = i
-                        break
-                    }
-                }
-
-                if (sourceIndex == targetIndex || (sourceIndex != -1 && targetIndex == sourceIndex + 1)) {
-                    return false
-                }
-
-                macroItemsPanel.remove(draggedItem)
-                if (sourceIndex < targetIndex) {
-                    targetIndex--
-                }
-
-                macroItemsPanel.add(draggedItem, targetIndex)
-
-                macroItemsPanel.revalidate()
-                macroItemsPanel.repaint()
-
-                this@MacroBar.notifyItemsReordered()
-
-                return true
-            }
-            return false
+            macroItemsPanel.revalidate()
+            macroItemsPanel.repaint()
+            notifyItemsReordered()
+            return true
         }
 
-        override fun exportDone(source: JComponent?, data: Transferable?, action: Int) {
-            draggedComponent = null
+        override fun exportDone(source: JComponent, data: Transferable, action: Int) {
+            dropLineX = null
+            isDragInProgress = false
+            macroItemsPanel.repaint()
+            sourceComponent = null
         }
     }
 }
