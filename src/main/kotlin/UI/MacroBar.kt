@@ -27,7 +27,6 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
 
         triggerSlot.border = BorderFactory.createTitledBorder("Trigger")
         triggerSlot.transferHandler = transferHandler
-        // Give the trigger slot a fixed width to prevent it from being squashed
         triggerSlot.preferredSize = Dimension(200, 0)
         triggerSlot.maximumSize = Dimension(200, Integer.MAX_VALUE)
         add(triggerSlot)
@@ -89,6 +88,8 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
             verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_NEVER
             border = null
+            // Increase the horizontal scroll speed
+            horizontalScrollBar.unitIncrement = 20
         }
         itemsPanelWithToolbar.add(scrollPane, BorderLayout.CENTER)
         add(itemsPanelWithToolbar)

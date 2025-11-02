@@ -26,6 +26,8 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
     private var currentFile: File? = null
     private var isUpdatingFromText = false
     private var isUpdatingFromBar = false
+    var hasUnsavedChanges = false
+        private set
 
     init {
         layout = BorderLayout()
@@ -62,12 +64,13 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         }
 
         textArea.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent?) { if (!isUpdatingFromBar) updateMacroBarFromText() }
-            override fun removeUpdate(e: DocumentEvent?) { if (!isUpdatingFromBar) updateMacroBarFromText() }
-            override fun changedUpdate(e: DocumentEvent?) { if (!isUpdatingFromBar) updateMacroBarFromText() }
+            override fun insertUpdate(e: DocumentEvent?) { hasUnsavedChanges = true; if (!isUpdatingFromBar) updateMacroBarFromText() }
+            override fun removeUpdate(e: DocumentEvent?) { hasUnsavedChanges = true; if (!isUpdatingFromBar) updateMacroBarFromText() }
+            override fun changedUpdate(e: DocumentEvent?) { hasUnsavedChanges = true; if (!isUpdatingFromBar) updateMacroBarFromText() }
         })
 
         setText(createDefaultMacroJson(), null)
+        hasUnsavedChanges = false // Reset after initial text is set
     }
 
     override fun propertyChange(evt: PropertyChangeEvent?) {
@@ -202,15 +205,6 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
 
     private fun createDefaultMacroJson(): String {
         return """{
-    "trigger": {
-        "allowed_clients": ["pixel9a"],
-        "command": "ON-RELEASE",
-        "keys": [
-            "ctrl",
-            "alt",
-            "t"
-        ]
-    },
     "events": [
         {
             "type": "key",
@@ -263,6 +257,7 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         if (::macroBar.isInitialized) {
             updateMacroBarFromText()
         }
+        hasUnsavedChanges = false // Reset after setting new text
     }
 
     fun getText(): String {
@@ -314,6 +309,7 @@ class MacroJsonEditorUI(private val frame: JFrame) : JPanel(), PropertyChangeLis
         try {
             file.writeText(getText())
             currentFile = file
+            hasUnsavedChanges = false // Reset after saving
             
             val tabbedPane = SwingUtilities.getAncestorOfClass(JTabbedPane::class.java, this) as? TabbedUI
             tabbedPane?.setTitleForComponent(this, file.name)

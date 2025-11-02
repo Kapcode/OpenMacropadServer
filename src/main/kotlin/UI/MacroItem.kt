@@ -46,7 +46,7 @@ open class MacroItem : JPanel() {
         add(commandLabel, BorderLayout.SOUTH)
 
         // Explicitly set preferred and maximum size to enforce a consistent height
-        preferredSize = Dimension(200, ITEM_HEIGHT)
+        preferredSize = Dimension(133, ITEM_HEIGHT) // Reduced preferred width
         maximumSize = Dimension(Integer.MAX_VALUE, ITEM_HEIGHT)
     }
 

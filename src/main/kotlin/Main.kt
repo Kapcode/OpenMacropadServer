@@ -23,9 +23,9 @@ fun main() {
             System.err.println("Failed to initialize LaF")
         }
 
-        // Make tooltips appear and disappear instantly
+        // Make tooltips appear instantly, and dismiss after 5 seconds
         ToolTipManager.sharedInstance().initialDelay = 0
-        ToolTipManager.sharedInstance().dismissDelay = Integer.MAX_VALUE // Effectively instant
+        ToolTipManager.sharedInstance().dismissDelay = 5000 // Dismiss after 5 seconds
 
         createAndShowGUI()
     }
@@ -34,7 +34,7 @@ fun main() {
 fun createAndShowGUI() {
     val wifiServer = WifiServer()
     val frame = JFrame("Open Macropad Server")
-    frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+    frame.defaultCloseOperation = JFrame.DO_NOTHING_ON_CLOSE // We will handle closing manually
     frame.extendedState = JFrame.MAXIMIZED_BOTH // Maximize the window
     frame.minimumSize = Dimension(200, 200) // Set minimum frame size
     frame.setLocationRelativeTo(null)
@@ -72,7 +72,27 @@ fun createAndShowGUI() {
     // Add a WindowListener to the frame to shut down JNativeHook when the application closes
     frame.addWindowListener(object : WindowAdapter() {
         override fun windowClosing(e: WindowEvent?) {
+            for (i in 0 until tabbedUI.tabCount) {
+                val editor = tabbedUI.getComponentAt(i) as? MacroJsonEditorUI
+                if (editor?.hasUnsavedChanges == true) {
+                    val choice = JOptionPane.showConfirmDialog(
+                        frame,
+                        "Save changes to ${tabbedUI.getTitleForComponent(editor)}?",
+                        "Unsaved Changes",
+                        JOptionPane.YES_NO_CANCEL_OPTION
+                    )
+                    when (choice) {
+                        JOptionPane.YES_OPTION -> editor.save(tabbedUI.getTitleForComponent(editor))
+                        JOptionPane.NO_OPTION -> { /* Do nothing, just proceed */ }
+                        JOptionPane.CANCEL_OPTION -> return // Abort the close operation
+                        JOptionPane.CLOSED_OPTION -> return // Abort the close operation
+                    }
+                }
+            }
+            // If we reach here, all tabs are handled, so we can safely exit
             activeMacroManager.shutdown()
+            frame.dispose()
+            System.exit(0)
         }
     })
 
