@@ -13,10 +13,13 @@ A server application for the Open Macropad device, allowing users to record, man
 *   **Save on Close**: The application will prompt you to save any unsaved changes before closing a tab or exiting the application.
 *   **Batch Deletion**: Easily select and delete multiple macros at once.
 *   **Always-On Macro Triggers**: Activate macros with a global hotkey, even when the application is not in focus. The trigger can be a single key or a combination of keys (e.g., Ctrl+Alt+T).
+*   **Client-Side Macro Execution**: Clients (like the Android application) can request to run macros by name. The server will only execute the macro if it is currently "active" (toggled on) and the client is in the macro's `allowed_clients` list.
 *   **Modular Macros**: Create complex workflows by having one macro execute another using the "Run Macro" event type.
 *   **Playback Control**: Fine-tune macro execution speed with the "Set Auto Wait" event.
+*   **Advanced Recording**: A comprehensive dialog allows you to define what to record (keys, mouse, etc.) and set a variety of end-recording triggers, including a specific key combination.
 *   **Dynamic Font Sizing**: The text on macro items will dynamically resize to ensure all information is visible, even for long key combinations.
 *   **Intuitive Drag-and-Drop**: Reorder macro events with a clear, visual drag-and-drop interface, complete with a highlighted drop zone and a ghost image of the item being dragged.
+*   **Inspector Panel**: A powerful debugging tool that displays the live position of the mouse, the color of the pixel under the cursor (in ARGB and Hex), and a mini-screenshot of the cursor's location. It can be frozen with a global hotkey for detailed inspection.
 
 ## UI Structure
 
@@ -26,9 +29,11 @@ The user interface is built using Java Swing and is organized into several key c
 
 *   **`ServerStatusUI.kt`**: A panel at the top of the window that displays the server's status (running/stopped), IP address, and port.
 
+*   **`InspectorUI.kt`**: A panel that provides live information about the cursor's position and color, with a hotkey to freeze the display for inspection.
+
 *   **`ConsoleUI.kt`**: A panel that provides a console for viewing server messages, client connections, and for sending raw data to connected devices.
 
-*   **`ConnectedDevicesUI.kt`**: A panel that lists all the clients currently connected to the server.
+*   **`ConnectedDevicesUI.kt`**: A panel that lists all the clients currently connected to the server, with options to disconnect them or send messages.
 
 *   **`MacroManagerUI.kt`**: A powerful panel for managing your macros. It lists all available `.json` files from the macro directory (`Documents/OpenMacropadServer/Macros` by default). From here, you can:
     *   **Activate**: Toggle a macro to be always-on and listen for its global hotkey trigger.

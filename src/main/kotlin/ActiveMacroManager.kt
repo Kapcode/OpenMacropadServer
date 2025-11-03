@@ -1,4 +1,5 @@
 import MacroPlayer
+import AppSettings
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -36,6 +37,32 @@ class ActiveMacroManager(private val macroPlayer: MacroPlayer) : NativeKeyListen
 
         Files.createDirectories(configFilePath.parent)
         loadActiveMacroStates()
+    }
+
+    fun getRunnableMacroJson(macroName: String, clientId: String): String? {
+        val macroFile = File(AppSettings.macroDirectory, "$macroName.json")
+
+        if (!isMacroActive(macroFile)) {
+            println("Macro '$macroName' is not active.")
+            return null
+        }
+
+        val macroJson = activeMacros[macroFile] ?: return null
+        val triggerObj = macroJson.optJSONObject("trigger") ?: return macroJson.toString() // No trigger means no client restrictions
+
+        val allowedClients = triggerObj.optJSONArray("allowed_clients")
+        if (allowedClients == null || allowedClients.length() == 0) {
+            return macroJson.toString() // No clients listed means all are allowed
+        }
+
+        for (i in 0 until allowedClients.length()) {
+            if (allowedClients.getString(i) == clientId) {
+                return macroJson.toString()
+            }
+        }
+
+        println("Client '$clientId' is not authorized to run macro '$macroName'.")
+        return null // Client not in the allowed list
     }
 
     fun addActiveMacro(macroFile: File, macroJson: JSONObject) {
