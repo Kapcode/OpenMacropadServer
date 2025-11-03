@@ -14,6 +14,9 @@ import javax.swing.*
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import com.github.kwhat.jnativehook.GlobalScreen
+import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent
+import com.github.kwhat.jnativehook.keyboard.NativeKeyListener
 
 fun main() {
     SwingUtilities.invokeLater {
@@ -62,6 +65,7 @@ fun createAndShowGUI() {
     frame.jMenuBar = menuBar
 
     val serverStatusUI = ServerStatusUI()
+    val inspectorUI = InspectorUI()
     val consoleUI = ConsoleUI(wifiServer)
     val connectedDevicesUI = ConnectedDevicesUI()
     val tabbedUI = TabbedUI(frame) // Pass frame to TabbedUI
@@ -91,6 +95,7 @@ fun createAndShowGUI() {
             }
             // If we reach here, all tabs are handled, so we can safely exit
             activeMacroManager.shutdown()
+            GlobalScreen.unregisterNativeHook() // Also unregister hook for inspector
             frame.dispose()
             System.exit(0)
         }
@@ -209,10 +214,27 @@ fun createAndShowGUI() {
     val bottomHorizontalSplit = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, consoleAndDevicesSplit, centerSplit)
     bottomHorizontalSplit.resizeWeight = 0.15 // Give left side 15%
 
-    val mainSplitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, serverStatusUI, bottomHorizontalSplit)
+    val topSplit = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, serverStatusUI, inspectorUI)
+    topSplit.resizeWeight = 0.9 // Give serverStatusUI 90%
+
+    val mainSplitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, topSplit, bottomHorizontalSplit)
     mainSplitPane.resizeWeight = 0.1
 
     frame.add(mainSplitPane)
+
+    // Add global key listener for the inspector hotkey
+    GlobalScreen.addNativeKeyListener(object : NativeKeyListener {
+        override fun nativeKeyPressed(e: NativeKeyEvent) {
+            val selectedHotkey = inspectorUI.getSelectedHotkey()
+            val hotkeyCode = KeyMap.stringToNativeKeyCodeMap[selectedHotkey]
+            if (e.keyCode == hotkeyCode) {
+                inspectorUI.toggleFreeze()
+            }
+        }
+        override fun nativeKeyReleased(e: NativeKeyEvent) {}
+        override fun nativeKeyTyped(e: NativeKeyEvent) {}
+    })
+
 
     Toolkit.getDefaultToolkit().addAWTEventListener(AWTEventListener { event ->
         if (event is MouseEvent && event.id == MouseEvent.MOUSE_PRESSED) {

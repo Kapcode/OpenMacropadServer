@@ -72,9 +72,9 @@ class RecordingSettingsDialog(parent: JFrame) : JDialog(parent, "Recording Setti
         mainPanel.add(JLabel("End Recording When:"))
 
         val keyPanel = JPanel(FlowLayout(FlowLayout.LEFT))
-        endOnKeysCheckBox = JCheckBox("Key(s) Pressed:")
-        keyTextField = JTextField(15)
-        keyTextField.isEnabled = false
+        endOnKeysCheckBox = JCheckBox("Key(s) Pressed:", true) // Checked by default
+        keyTextField = JTextField("ESCAPE", 15) // Default text and enabled
+        keyTextField.isEnabled = true
         endOnKeysCheckBox.addActionListener { keyTextField.isEnabled = endOnKeysCheckBox.isSelected }
         keyPanel.add(endOnKeysCheckBox)
         keyPanel.add(keyTextField)
