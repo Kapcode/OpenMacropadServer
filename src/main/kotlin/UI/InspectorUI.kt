@@ -1,6 +1,7 @@
 package UI
 
 import java.awt.*
+import java.awt.datatransfer.StringSelection
 import java.awt.image.BufferedImage
 import javax.swing.*
 import javax.swing.Timer
@@ -26,20 +27,37 @@ class InspectorUI : JPanel() {
         gbc.insets = Insets(2, 5, 2, 5)
         gbc.anchor = GridBagConstraints.WEST
 
+        val copyIcon = SvgIconRenderer.getIcon("/copy-icon.svg", 12, 12)
+
         // --- Row 0: Location ---
         gbc.gridx = 0
         gbc.gridy = 0
         add(locationLabel, gbc)
+        gbc.gridx = 1
+        val copyLocationButton = JButton(copyIcon)
+        copyLocationButton.addActionListener { copyToClipboard(locationLabel.text) }
+        add(copyLocationButton, gbc)
 
         // --- Row 1: ARGB Color ---
+        gbc.gridx = 0
         gbc.gridy = 1
         add(argbLabel, gbc)
+        gbc.gridx = 1
+        val copyArgbButton = JButton(copyIcon)
+        copyArgbButton.addActionListener { copyToClipboard(argbLabel.text) }
+        add(copyArgbButton, gbc)
 
         // --- Row 2: Hex Color ---
+        gbc.gridx = 0
         gbc.gridy = 2
         add(hexLabel, gbc)
+        gbc.gridx = 1
+        val copyHexButton = JButton(copyIcon)
+        copyHexButton.addActionListener { copyToClipboard(hexLabel.text) }
+        add(copyHexButton, gbc)
 
         // --- Row 3: Color Swatch & Screenshot ---
+        gbc.gridx = 0
         gbc.gridy = 3
         gbc.gridwidth = 2
         val previewPanel = JPanel(FlowLayout(FlowLayout.LEFT))
@@ -52,7 +70,9 @@ class InspectorUI : JPanel() {
         gbc.gridwidth = 1 // Reset gridwidth
 
         // --- Row 4: Capture Hotkey & Live Update ---
+        gbc.gridx = 0
         gbc.gridy = 4
+        gbc.gridwidth = 2
         val controlPanel = JPanel(FlowLayout(FlowLayout.LEFT))
         controlPanel.add(JLabel("Capture Hotkey:"))
         captureHotkeyComboBox = JComboBox(arrayOf("F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8"))
@@ -74,8 +94,13 @@ class InspectorUI : JPanel() {
         captureTimer.start()
     }
 
+    private fun copyToClipboard(text: String) {
+        val selection = StringSelection(text)
+        Toolkit.getDefaultToolkit().systemClipboard.setContents(selection, selection)
+    }
+
     private fun updateInspector() {
-        if (isFrozen) return
+        if (isFrozen && liveUpdateCheckBox.isSelected) return // Only return if frozen AND live update is on
 
         val robot = Robot()
         val mousePos = MouseInfo.getPointerInfo().location
@@ -97,6 +122,11 @@ class InspectorUI : JPanel() {
 
     fun toggleFreeze() {
         isFrozen = !isFrozen
+        if (isFrozen) {
+            updateInspector() // Capture state at the moment of freezing
+        } else if (!liveUpdateCheckBox.isSelected) {
+            updateInspector() // Refresh with current live data if unfrozen and live update is off
+        }
     }
 
     fun getSelectedHotkey(): String {
