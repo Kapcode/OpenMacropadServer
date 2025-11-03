@@ -86,6 +86,7 @@ object KeyMap {
         "RIGHT" to KeyEvent.VK_RIGHT,
         "PRINTSCREEN" to KeyEvent.VK_PRINTSCREEN,
         "PAUSE" to KeyEvent.VK_PAUSE,
+        "CONTEXT_MENU" to KeyEvent.VK_CONTEXT_MENU,
 
         // Punctuation and Symbols
         "COMMA" to KeyEvent.VK_COMMA,
@@ -98,7 +99,13 @@ object KeyMap {
         "BACK_SLASH" to KeyEvent.VK_BACK_SLASH,
         "CLOSE_BRACKET" to KeyEvent.VK_CLOSE_BRACKET,
         "QUOTE" to KeyEvent.VK_QUOTE,
-        "BACK_QUOTE" to KeyEvent.VK_BACK_QUOTE
+        "BACK_QUOTE" to KeyEvent.VK_BACK_QUOTE,
+
+        // Aliases
+        "ESC" to KeyEvent.VK_ESCAPE,
+        "CONTROL" to KeyEvent.VK_CONTROL,
+        "TILDE" to KeyEvent.VK_BACK_QUOTE,
+        "CONTEXT" to KeyEvent.VK_CONTEXT_MENU
     )
 
     // Map for JNativeHook event handling (uses NativeKeyEvent.VC_ codes)
@@ -185,6 +192,7 @@ object KeyMap {
         "RIGHT" to NativeKeyEvent.VC_RIGHT,
         "PRINTSCREEN" to NativeKeyEvent.VC_PRINTSCREEN,
         "PAUSE" to NativeKeyEvent.VC_PAUSE,
+        "CONTEXT_MENU" to NativeKeyEvent.VC_CONTEXT_MENU,
 
         // Punctuation and Symbols
         "COMMA" to NativeKeyEvent.VC_COMMA,
@@ -197,7 +205,13 @@ object KeyMap {
         "BACK_SLASH" to NativeKeyEvent.VC_BACK_SLASH,
         "CLOSE_BRACKET" to NativeKeyEvent.VC_CLOSE_BRACKET,
         "QUOTE" to NativeKeyEvent.VC_QUOTE,
-        "BACK_QUOTE" to NativeKeyEvent.VC_BACKQUOTE
+        "BACK_QUOTE" to NativeKeyEvent.VC_BACKQUOTE,
+
+        // Aliases
+        "ESC" to NativeKeyEvent.VC_ESCAPE,
+        "CONTROL" to NativeKeyEvent.VC_CONTROL,
+        "TILDE" to NativeKeyEvent.VC_BACKQUOTE,
+        "CONTEXT" to NativeKeyEvent.VC_CONTEXT_MENU
     )
 
     val charToKeyTextMap = mapOf(

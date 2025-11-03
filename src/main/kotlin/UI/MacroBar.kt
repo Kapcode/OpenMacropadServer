@@ -1,5 +1,8 @@
 package UI
 
+import MacroRecorder
+import org.json.JSONArray
+import org.json.JSONObject
 import java.awt.* 
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
@@ -13,30 +16,27 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
 
     private val toolbar = ToolBarUI()
     private var dropLineX: Int? = null
-    private val dropZoneHeight = 30 // The height of the drop zone at the top
+    private val dropZoneHeight = 30
     private var isDragInProgress = false
     private val newTriggerButton: JButton
+    private var macroRecorder: MacroRecorder? = null
 
     val macroItemsPanel = object : JPanel() {
         override fun paintComponent(g: Graphics) {
             super.paintComponent(g)
             if (isDragInProgress) {
-                // Draw a highlight rectangle only in the drop zone
-                g.color = Theme().SecondaryBorderColor // Use a distinct color for highlight
+                g.color = Theme().SecondaryBorderColor
                 g.fillRect(0, 0, width, dropZoneHeight)
             }
-
             dropLineX?.let {
                 g.color = Color.RED
-                // Draw the line only within the top drop zone area
                 g.fillRect(it - 1, 0, 2, dropZoneHeight)
             }
         }
     }.apply {
         layout = BoxLayout(this, BoxLayout.X_AXIS)
-        isOpaque = true // Ensure the panel paints its background
-        background = Theme().SecondaryBackgroundColor // Set initial background
-        // Create a physical drop zone at the top with an empty border
+        isOpaque = true
+        background = Theme().SecondaryBackgroundColor
         border = BorderFactory.createEmptyBorder(dropZoneHeight, 0, 0, 0)
     }
 
@@ -45,37 +45,29 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
 
     init {
         val theme = Theme()
-        layout = BorderLayout() // Changed to BorderLayout for MacroBar itself
+        layout = BorderLayout()
         background = theme.SecondaryBackgroundColor
-
-        // Set minimum and preferred size for MacroBar to ensure it gets vertical space
-        minimumSize = Dimension(0, 100) // Minimum height of 100 pixels
-        preferredSize = Dimension(0, 150) // Preferred height of 150 pixels
+        minimumSize = Dimension(0, 100)
+        preferredSize = Dimension(0, 150)
 
         val newEventAction = ActionListener { 
-            val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
-            val wasEditorInFocus = focusOwner is JTextArea
-
             val selectedComponent = tabbedUI.selectedComponent
             if (selectedComponent is MacroJsonEditorUI) {
                 val dialog = NewEventDialog(frame)
                 dialog.isVisible = true
                 dialog.createdEvent?.let { event ->
-                    selectedComponent.insertNewEvent(event, dialog.isTriggerEvent, wasEditorInFocus)
+                    selectedComponent.insertNewEvent(event, dialog.isTriggerEvent, selectedComponent.hasTextFocus())
                 }
             }
         }
 
         val newTriggerAction = ActionListener { 
-            val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
-            val wasEditorInFocus = focusOwner is JTextArea
-
             val selectedComponent = tabbedUI.selectedComponent
             if (selectedComponent is MacroJsonEditorUI) {
-                val dialog = NewEventDialog(frame, isTriggerDefault = true) // Pass isTriggerDefault = true
+                val dialog = NewEventDialog(frame, isTriggerDefault = true)
                 dialog.isVisible = true
                 dialog.createdEvent?.let { event ->
-                    selectedComponent.insertNewEvent(event, dialog.isTriggerEvent, wasEditorInFocus)
+                    selectedComponent.insertNewEvent(event, dialog.isTriggerEvent, selectedComponent.hasTextFocus())
                 }
             }
         }
@@ -87,7 +79,7 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         newTriggerButton = JButton("New Trigger")
         newTriggerButton.addActionListener(newTriggerAction)
         triggerSlot.add(newTriggerButton, BorderLayout.CENTER)
-        add(triggerSlot, BorderLayout.WEST) // Added to WEST
+        add(triggerSlot, BorderLayout.WEST)
 
         val itemsPanelWithToolbar = JPanel(BorderLayout())
         
@@ -105,13 +97,38 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         }
         var isRecording = false
         recordButton.addActionListener { 
-            isRecording = !isRecording
             if (isRecording) {
-                if (stopIcon != null) recordButton.setIcon(stopIcon)
-                recordButton.setToolTipText("Stop Recording")
-            } else {
+                macroRecorder?.stop()
+                isRecording = false
                 if (recordIcon != null) recordButton.setIcon(recordIcon)
                 recordButton.setToolTipText("Start Recording")
+            } else {
+                val settingsDialog = RecordingSettingsDialog(frame)
+                settingsDialog.isVisible = true
+
+                if (settingsDialog.shouldStartRecording) {
+                    isRecording = true
+                    if (stopIcon != null) recordButton.setIcon(stopIcon)
+                    recordButton.setToolTipText("Stop Recording")
+                    
+                    macroRecorder = MacroRecorder(settingsDialog) { recordedEvents ->
+                        SwingUtilities.invokeLater { 
+                            val selectedEditor = tabbedUI.selectedComponent as? MacroJsonEditorUI
+                            if (selectedEditor != null) {
+                                val newEventsArray = JSONArray(recordedEvents)
+                                val currentJson = JSONObject(selectedEditor.getText())
+                                currentJson.put("events", newEventsArray)
+                                selectedEditor.setText(currentJson.toString(4), selectedEditor.getCurrentFile())
+                            }
+                            println("Recording Stopped")
+                            // Reset button state after recording is processed
+                            isRecording = false
+                            if (recordIcon != null) recordButton.setIcon(recordIcon)
+                            recordButton.setToolTipText("Start Recording")
+                        }
+                    }
+                    macroRecorder?.start()
+                }
             }
         }
         toolbar.add(recordButton)
@@ -144,7 +161,7 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
         macroItemsContainer.add(addMacroItemButton, BorderLayout.EAST)
 
         itemsPanelWithToolbar.add(macroItemsContainer, BorderLayout.CENTER)
-        add(itemsPanelWithToolbar, BorderLayout.CENTER) // Added to CENTER
+        add(itemsPanelWithToolbar, BorderLayout.CENTER)
 
         macroItemsPanel.transferHandler = transferHandler
     }
@@ -236,11 +253,10 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
 
             val dropPoint = support.dropLocation.dropPoint
 
-            // Check if the drop is in the valid drop zone (the top border area)
             if (dropPoint.y > dropZoneHeight) {
                 dropLineX = null
                 macroItemsPanel.repaint()
-                return false // It's a no-drop zone
+                return false
             }
 
             val targetIndex = getTargetIndex(support)
@@ -252,7 +268,7 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
                     val lastComp = macroItemsPanel.getComponent(macroItemsPanel.componentCount - 1)
                     dropLineX = lastComp.x + lastComp.width
                 } else {
-                    dropLineX = 0 // If panel is empty
+                    dropLineX = 0
                 }
             }
 
@@ -275,7 +291,7 @@ class MacroBar(private val frame: JFrame, private val tabbedUI: TabbedUI) : JPan
             val targetIndex = getTargetIndex(support)
 
             if (sourceIndex == targetIndex) {
-                return false // No change
+                return false
             }
 
             macroItemsPanel.remove(comp)
