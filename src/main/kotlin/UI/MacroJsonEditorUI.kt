@@ -1,5 +1,6 @@
 package UI
 
+import AppSettings
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rtextarea.RTextScrollPane
@@ -295,8 +296,7 @@ class MacroJsonEditorUI(private val frame: JFrame, private val tabbedUI: TabbedU
         fileChooser.dialogTitle = "Save Macro As"
         fileChooser.fileFilter = javax.swing.filechooser.FileNameExtensionFilter("JSON Macro Files", "json")
 
-        val defaultPath = System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros"
-        val defaultDir = File(defaultPath)
+        val defaultDir = File(AppSettings.macroDirectory)
         if (!defaultDir.exists()) defaultDir.mkdirs()
         fileChooser.currentDirectory = defaultDir
 

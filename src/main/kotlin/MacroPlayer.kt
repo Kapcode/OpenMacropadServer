@@ -1,3 +1,4 @@
+import AppSettings
 import org.json.JSONObject
 import java.awt.MouseInfo
 import java.awt.Robot
@@ -74,7 +75,7 @@ class MacroPlayer {
                         continue // Skip this event to prevent infinite recursion
                     }
 
-                    val macroFolder = File(System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros")
+                    val macroFolder = File(AppSettings.macroDirectory)
                     val fileToRun = File(macroFolder, macroName)
                     if (fileToRun.exists()) {
                         val newCallStack = callStack.toMutableSet()

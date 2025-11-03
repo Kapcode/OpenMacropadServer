@@ -1,6 +1,7 @@
 package UI
 
 import ActiveMacroManager
+import AppSettings
 import MacroPlayer
 import org.json.JSONObject
 import java.awt.BorderLayout
@@ -16,8 +17,7 @@ import javax.swing.*
 
 class MacroManagerUI(private val tabbedUI: TabbedUI, private val activeMacroManager: ActiveMacroManager, private val macroPlayer: MacroPlayer) : JPanel() {
 
-    private val defaultMacroPath = System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros"
-    private var macroFolder = File(defaultMacroPath)
+    private var macroFolder = File(AppSettings.macroDirectory)
     private val macrosPanel: JPanel
 
     private var watcher: WatchService? = null

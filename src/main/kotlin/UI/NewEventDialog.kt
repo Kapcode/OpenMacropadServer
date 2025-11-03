@@ -1,5 +1,6 @@
 package UI
 
+import AppSettings
 import KeyMap
 import org.json.JSONObject
 import java.awt.BorderLayout
@@ -142,7 +143,7 @@ class NewEventDialog(parent: JFrame, private val isTriggerDefault: Boolean = fal
 
         panel.add(JLabel("Macro Name:"))
         macroNameComboBox = JComboBox()
-        val macroFolder = File(System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros")
+        val macroFolder = File(AppSettings.macroDirectory)
         macroFolder.listFiles { _, name -> name.endsWith(".json") }?.forEach { file ->
             macroNameComboBox.addItem(file.name)
         }

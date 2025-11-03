@@ -1,4 +1,5 @@
 import ConnectionListener
+import AppSettings
 import UI.*
 import WifiServer
 import com.formdev.flatlaf.FlatDarkLaf
@@ -105,7 +106,7 @@ fun createAndShowGUI() {
     val addIcon = SvgIconRenderer.getIcon("/add-file-icon.svg", 24, 24)
     if (addIcon != null) {
         macroManagerToolbar.addButton(addIcon, "Add Macro") { 
-            val macroFolder = File(System.getProperty("user.home") + File.separator + "Documents" + File.separator + "OpenMacropadServer" + File.separator + "Macros")
+            val macroFolder = File(AppSettings.macroDirectory)
             var newMacroFile: File
             var i = 1
             do {
